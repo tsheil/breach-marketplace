@@ -1,7 +1,7 @@
 {
   "name": "breach",
-  "version": "1.0.0",
-  "description": "Security vulnerability hunting toolkit. Four-stage pipeline for expert bug hunters: attack surface reconnaissance, systematic vulnerability hunting, PoC validation, and bounty-ready reporting.",
+  "version": "1.1.0",
+  "description": "Security vulnerability hunting toolkit. Five-skill pipeline with finding lifecycle for expert bug hunters: attack surface reconnaissance, systematic code analysis, PoC validation with triage, human-verified reporting, and pipeline orchestration.",
   "author": { "name": "Thomas Sheil" },
   "license": "Apache-2.0"
 }
