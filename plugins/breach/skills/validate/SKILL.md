@@ -1,5 +1,5 @@
 ---
-description: "Validate security findings with proof-of-concept exploits and strict evidence. This skill should be used when the user wants to validate vulnerability findings, generate PoC exploits, prove a vulnerability is exploitable, verify findings are not false positives, confirm a vulnerability is real, build an exploit, triage security findings, create a PoC, or prepare evidence for a security report. This is the validation phase following the hunt phase in the breach pipeline."
+description: "Validate security findings with proof-of-concept exploits and strict evidence. This skill should be used when the user wants to validate vulnerability findings, generate PoC exploits, prove a vulnerability is exploitable, verify findings are not false positives, confirm a vulnerability is real, build an exploit, triage security findings, create a PoC, prepare evidence for a security report, process findings through the validation stage, or advance findings in the finding lifecycle. This is the validation phase following the code analysis phase in the breach pipeline."
 ---
 
 # Validate
@@ -126,14 +126,44 @@ Apply these criteria strictly. False positives erode trust in the entire report.
 
 ### Downgrade Severity If:
 
+
 - **Authentication required**: Reduces attacker pool significantly. High becomes Medium unless the finding is privilege escalation (which inherently requires authentication).
 - **Self-impact only**: User can modify their own data in unintended ways but cannot affect other users. This is a robustness issue, not typically a security vulnerability — but document it if the self-modification has security implications (e.g., elevating own privileges).
 - **Significant preconditions**: Requires specific server configuration, race condition timing within narrow windows, or a particular application state that isn't the default. Each precondition reduces severity by one level, minimum Low.
 - **No runtime verification**: Static analysis shows the vulnerability pattern but you couldn't confirm exploitation. Downgrade by one level and flag for runtime testing.
 
+## Lifecycle-Aware Mode
+
+Before processing findings, check whether a `findings/` directory exists in the current working directory or any parent directory (up to 5 levels). The `findings/` directory is recognized by having stage subdirectories (`potential/`, `confirmed/`, `validated/`, `verified/`, `reported/`, `rejected/`).
+
+### If `findings/` directory is found: Lifecycle Mode
+
+Process findings from `findings/potential/` and `findings/confirmed/`:
+
+1. **Read each finding**: Parse `finding.md` from each finding folder in `potential/` and `confirmed/`.
+2. **Apply full validation procedure**: Execute all 6 validation steps (Context Recovery, Control Enumeration, Exploit Path Construction, Framework Protection Audit, PoC Generation, Confidence Assignment) and triage criteria against each finding.
+3. **On validation success**:
+   - Write PoC script(s) to the finding's `poc/` directory (e.g., `poc/poc.py`, `poc/exploit.sh`)
+   - Update `finding.md`: populate all sections (Proof of Concept, Impact, Remediation, References), update frontmatter fields (`cvss_score`, `cvss_vector`, `confidence`, `stage` to "validated", `last_moved` to current ISO 8601 timestamp)
+   - Move the finding folder to `findings/validated/`
+   - If severity changed during validation, rename the folder to match (e.g., `HIGH-003-SQLI-endpoint/` → `MED-003-SQLI-endpoint/`) and update `severity` in frontmatter
+4. **On validation failure** (finding does not meet evidence bar or is triaged out):
+   - Update `finding.md` frontmatter: set `stage` to "rejected", `rejection_reason` explaining why, `last_moved` to current timestamp
+   - Move the finding folder to `findings/rejected/`
+5. **Output summary table** to conversation after processing all findings:
+
+| ID | Severity | Type | Component | Result | Confidence/Reason |
+|----|----------|------|-----------|--------|-------------------|
+
+### If no `findings/` directory is found: Standalone Mode
+
+Operate identically to non-lifecycle behavior: process findings from conversation context, output validated findings to conversation using the Output Format below. No filesystem changes.
+
 ## Output Format
 
-For each validated finding, produce the following structure. Do not deviate from this format — consistency enables automation and review.
+In lifecycle mode, validated findings are written to `finding.md` files in the `findings/validated/` directory. Conversation output is a summary table of results (see Lifecycle-Aware Mode above).
+
+In standalone mode, for each validated finding, produce the following structure. Do not deviate from this format — consistency enables automation and review.
 
 ```
 ### Finding [ID]: [Vulnerability Class] — [CWE-XXX]
@@ -170,4 +200,7 @@ If invoked without hunt phase output — no findings list, no target files, no p
 
 ## Pipeline
 
-Validation complete. Run `/breach:report` to generate the final security report.
+Validation complete.
+
+- **Lifecycle mode**: Validated findings are in `findings/validated/`. Human verification is required before reporting — move approved findings from `findings/validated/` to `findings/verified/` and update the `stage` field in frontmatter. Then run `/breach:report` or re-run `/breach:hunt` to generate the final security report.
+- **Standalone mode**: Run `/breach:report` to generate the final security report from conversation context.

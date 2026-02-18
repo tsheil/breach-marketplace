@@ -1,5 +1,5 @@
 ---
-description: "Generate a professional security vulnerability report with CVSS scoring and bounty-ready presentation. This skill should be used when the user wants to write a security report, format vulnerability findings, create a bounty submission, calculate CVSS scores, prepare a report for HackerOne or Bugcrowd, or turn raw vulnerability notes into a structured security assessment. This is the final phase of the breach pipeline."
+description: "Generate a professional security vulnerability report with CVSS scoring and bounty-ready presentation. This skill should be used when the user wants to write a security report, format vulnerability findings, create a bounty submission, calculate CVSS scores, prepare a report for HackerOne or Bugcrowd, turn raw vulnerability notes into a structured security assessment, or generate reports from verified findings in the finding lifecycle. This is the final phase of the breach pipeline. Enforces a hard gate on human-verified findings in lifecycle mode."
 ---
 
 # Report Generation Skill
@@ -23,6 +23,43 @@ For each validated finding from the validate phase, apply the following procedur
 **Step 5 — Provide the Proof of Concept.** The PoC must be copy-paste-ready. If it is a script, it must run without modification on a standard system with common tools installed. If it is a series of curl commands, each command must be complete with all headers, cookies, and payloads. If the PoC requires dependencies, list them with exact installation commands. Include comments in the code explaining what each section does. A PoC that requires debugging is a PoC that gets the report deprioritized.
 
 **Step 6 — Write Remediation Guidance.** Provide a specific, implementable fix. Show the exact code change — before and after. If there are multiple valid remediation approaches, list them in order of preference with trade-offs for each. Reference relevant security libraries or framework features that address the vulnerability class. The remediation section serves two purposes: it demonstrates expertise (which builds trust with the security team) and it accelerates the fix (which gets the report resolved faster, which gets the bounty paid faster).
+
+## Lifecycle Gate: Human Verification Required
+
+Before generating a report, check whether a `findings/` directory exists in the current working directory or any parent directory (up to 5 levels). The `findings/` directory is recognized by having stage subdirectories (`potential/`, `confirmed/`, `validated/`, `verified/`, `reported/`, `rejected/`).
+
+### If `findings/` directory is found: Lifecycle Mode
+
+**Hard gate: only process findings from `findings/verified/`.**
+
+This gate cannot be overridden. The report skill will not generate reports for findings that have not been human-verified.
+
+1. **Check `findings/verified/`** for finding folders. If verified findings exist, proceed with report generation using the finding.md contents from each verified finding folder.
+2. **If no verified findings exist**: Do not generate a report. Instead, report the count of findings in each stage and instruct the user:
+
+   > **No verified findings available for reporting.**
+   >
+   > Current finding counts:
+   > - potential: [N]
+   > - confirmed: [N]
+   > - validated: [N]
+   > - verified: 0
+   > - reported: [N]
+   > - rejected: [N]
+   >
+   > To generate a report, move validated findings to `findings/verified/`:
+   > 1. Review each finding in `findings/validated/`
+   > 2. Move approved finding folders to `findings/verified/`
+   > 3. Update `stage` to "verified" in each finding.md frontmatter
+   > 4. Re-run `/breach:report`
+
+   Stop execution. Do not generate a partial report or fall back to conversation findings.
+
+3. **Post-report**: For each finding included in the report, update its `finding.md` frontmatter (`stage` to "reported", `last_moved` to current ISO 8601 timestamp) and move the finding folder from `findings/verified/` to `findings/reported/`.
+
+### If no `findings/` directory is found: Standalone Mode
+
+No gate applies. Accept findings from conversation context and generate the report as normal. This preserves backward compatibility when the finding lifecycle is not in use.
 
 ## Section 2: Severity and CVSS Scoring
 
@@ -102,4 +139,7 @@ If this skill is invoked without validated findings from a previous phase, do no
 
 ## Pipeline
 
-Report generation is the final phase of the breach workflow. The validated findings have been transformed into a professional, submission-ready document. For additional targets, run `/breach:recon` on a different scope.
+Report generation is the final phase of the breach workflow.
+
+- **Lifecycle mode**: Reported findings have been moved to `findings/reported/`. The security report covers all human-verified findings. For additional targets or a new discovery cycle, run `/breach:hunt` or `/breach:recon` on a different scope.
+- **Standalone mode**: The validated findings have been transformed into a professional, submission-ready document. For additional targets, run `/breach:recon` on a different scope.

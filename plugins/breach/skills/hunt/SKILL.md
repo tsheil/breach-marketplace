@@ -1,178 +1,138 @@
 ---
-description: "Systematically hunt for security vulnerabilities in a codebase. This skill should be used when the user asks to find vulnerabilities, hunt for bugs, perform a security audit, check for injection flaws, look for authentication bypasses, trace user input to dangerous sinks, search for OWASP Top 10 issues, review code for security problems, or find exploitable weaknesses in source code. Works best after attack surface reconnaissance but can operate standalone."
+description: "Hunt for vulnerabilities with a full breach pipeline. This skill should be used when the user asks to hunt for vulnerabilities, perform a security audit, run a comprehensive code security review, execute the full breach pipeline, manage the finding lifecycle, run recon through reporting, or perform systematic vulnerability discovery and validation. Orchestrates the complete workflow from reconnaissance through validated findings."
 ---
 
-# Hybrid Vulnerability Hunting Methodology
+# Hunt: Breach Pipeline Orchestrator
 
-This skill implements a three-phase hybrid audit methodology designed for expert security researchers performing source code audits. The approach combines component mapping, risk-based prioritization, and systematic input tracing to maximize vulnerability discovery rates while maintaining efficient use of audit time.
+This skill orchestrates the complete breach pipeline: reconnaissance, code analysis, validation, and reporting. It manages the finding lifecycle, coordinating the individual skills into a batch workflow while tracking findings through filesystem-based stages.
 
-## Phase 1: Component-to-Vulnerability Mapping
+Each phase invokes a specialized skill. All skills remain independently invocable outside this orchestrator.
 
-Begin by establishing a comprehensive map between application components and their applicable vulnerability classes. If recon output from a prior reconnaissance phase is available, use those identified entry points as the starting inventory. If no recon output exists, refer to the fallback clause at the end of this document.
+## Findings Directory Detection
 
-For every entry point, endpoint, and component identified, construct a mapping table with the following columns:
+Before executing the pipeline, detect or create the findings directory:
 
-| Component | Input Sources | Applicable Vulns | Existing Controls | Priority |
-|-----------|--------------|-------------------|-------------------|----------|
+1. Check the current working directory for a `findings/` directory containing stage subdirectories (`potential/`, `confirmed/`, `validated/`, `verified/`, `reported/`, `rejected/`).
+2. If not found in the current directory, walk up parent directories (maximum 5 levels) looking for the same structure.
+3. If no existing `findings/` directory is found anywhere, create one in the current working directory with all 6 stage subdirectories:
 
-Populate this table by reasoning about what each component does and what vulnerability classes naturally apply:
+```
+findings/
+├── potential/
+├── confirmed/
+├── validated/
+├── verified/
+├── reported/
+└── rejected/
+```
 
-- **Data storage endpoints** (any component that writes to a database or data store): SQL injection, NoSQL injection, mass assignment, second-order injection. Look for query construction, ORM usage, raw query execution, and stored procedure invocation.
+Create this silently — do not prompt the user for confirmation.
 
-- **Rendering endpoints** (any component that produces HTML, templates, or formatted output): Cross-site scripting (reflected, stored, DOM-based), server-side template injection (SSTI), HTML injection. Look for template engines, output encoding functions, and user input flowing into rendered output.
+## Pipeline Execution
 
-- **File handling endpoints** (upload, download, read, write, or process files): Path traversal, unrestricted file upload, local file inclusion, remote file inclusion, zip slip, XML external entity injection via file parsing. Look for file path construction, MIME type validation, and file processing libraries.
+### Phase A: Reconnaissance
 
-- **Authentication endpoints** (login, registration, password reset, MFA, session management): Authentication bypass, credential stuffing, brute force, session fixation, session hijacking, insecure password recovery, JWT vulnerabilities. Look for session creation, token generation, credential validation, and password reset flows.
+Invoke `/breach:recon` on the target codebase to map the attack surface. This produces a prioritized map of entry points, trust boundaries, authentication mechanisms, and framework patterns that feeds into the discovery phase.
 
-- **API endpoints** (REST, GraphQL, gRPC, or other programmatic interfaces): Insecure direct object references (IDOR), broken function-level authorization, mass assignment, excessive data exposure, lack of rate limiting, GraphQL introspection abuse, batch query attacks. Look for object ID parameters, authorization middleware, response filtering, and schema exposure.
+If the user has already run recon or provides recon output, skip this phase.
 
-- **Redirect endpoints** (any component that redirects the user to another URL): Open redirect, OAuth token theft via redirect manipulation. Look for redirect parameters, URL validation, and whitelist enforcement.
+### Phase B: Discovery
 
-- **Administrative and privileged endpoints** (admin panels, internal tools, management interfaces): Missing access control, privilege escalation, exposed internal functionality, debug endpoints, default credentials.
+Invoke `/breach:code-analysis` to perform systematic vulnerability discovery. The code-analysis skill operates in lifecycle-aware mode (since the `findings/` directory exists) and creates finding folders in `findings/potential/` for each discovered vulnerability.
 
-- **Third-party integration endpoints** (webhooks, callbacks, payment processing, OAuth, SAML): SSRF via webhook URLs, callback URL manipulation, payment amount tampering, OAuth misconfiguration, SAML signature bypass.
+Each finding gets:
+- A sequentially assigned ID (scanning all existing findings across all stages)
+- A finding folder with `finding.md` (Vulnerable Code and Exploitability sections populated) and an empty `poc/` directory
+- Proper naming convention: `{SEVERITY}-{ID}-{VULN_TYPE}-{desc}/`
 
-- **Search and export endpoints** (search functionality, CSV/PDF export, reporting): Injection via search terms, CSV injection, information disclosure via export, denial of service via resource-intensive queries.
+### Phase C: Validation
 
-For each component, document the input sources comprehensively. Inputs are not limited to query parameters and POST bodies. Consider: URL path segments, HTTP headers (Host, Referer, X-Forwarded-For, custom headers), cookies, file contents (uploaded files, imported data), WebSocket messages, values retrieved from the database that originated from earlier user input (second-order), environment variables influenced by user actions, and DNS-based inputs.
+Process all findings in `findings/potential/` through the validation logic from `/breach:validate`:
 
-Document existing security controls for each component. These include input validation, output encoding, parameterized queries, authentication middleware, authorization checks, rate limiting, CSRF tokens, security headers, and WAF rules. Note whether controls are applied server-side or client-side only, as client-side controls offer no real protection.
+- For each finding, apply the full 6-element evidence bar, triage criteria, PoC generation, CVSS scoring, and confidence assignment
+- **Validated findings**: Update finding.md with all sections (PoC, Impact, Remediation, References) and frontmatter fields (cvss_score, cvss_vector, confidence). Write PoC scripts to the `poc/` directory. Move the finding folder to `findings/validated/` (the orchestrator skips the `confirmed/` stage since it performs PoC generation and validation in a single pass).
+- **Rejected findings**: Set `rejection_reason` in finding.md frontmatter, update stage to "rejected", move the finding folder to `findings/rejected/`.
 
-## Phase 2: Risk Prioritization
+### Phase D: Pause for Human Verification
 
-Organize the mapped components into three tiers based on potential impact and exploitability. This tiering determines the order of investigation during the hunt and ensures that the highest-value targets receive the most thorough analysis.
+After validation completes, print a summary of results:
 
-### Tier 1 -- Hunt First (Exhaustive Analysis Required)
+**Validated Findings** (in `findings/validated/`):
 
-These components represent the highest risk due to either requiring no authentication (maximizing the attacker pool) or guarding critical functionality (maximizing impact upon compromise):
+| ID | Severity | CVSS | Type | Component | Title | Confidence |
+|----|----------|------|------|-----------|-------|------------|
 
-- **Unauthenticated endpoints**: Any functionality accessible without authentication is reachable by any attacker on the internet. Vulnerabilities here have maximum exploitability.
-- **Authentication and authorization logic**: The gatekeepers themselves. Flaws here undermine the entire security model. Includes login flows, registration, session management, role enforcement, and permission checks.
-- **File upload handlers**: Historically one of the most reliable paths to remote code execution. Even with mitigations, bypass techniques are well-documented and frequently successful.
-- **Deserialization points**: Insecure deserialization commonly leads directly to remote code execution with minimal exploitation complexity.
-- **Direct database query construction**: Any location where SQL or NoSQL queries are built using string concatenation or interpolation with user-controlled input.
-- **Admin and privileged functionality**: Compromise of admin functions grants maximum control. Often these have weaker security due to assumptions about trusted users.
-- **Password reset flows**: A single flaw can enable account takeover at scale. These flows are complex and frequently contain subtle logic errors.
-- **Payment and financial operations**: Direct financial impact. Logic flaws can enable price manipulation, duplicate transactions, or theft.
+**Rejected Findings** (in `findings/rejected/`):
 
-### Tier 2 -- Hunt Second (Thorough Analysis)
+| ID | Severity | Type | Component | Rejection Reason |
+|----|----------|------|-----------|------------------|
 
-These components have moderate impact, typically requiring some level of authentication or involving less critical functionality:
+Then instruct the user:
 
-- **Authenticated state-changing operations**: Any POST/PUT/DELETE action behind authentication. Look for CSRF, IDOR, business logic flaws, and missing authorization.
-- **Payment integrations**: Third-party payment gateway interactions, webhook handling, transaction verification, and refund processing.
-- **Third-party API integrations**: Outbound requests to external services. Look for SSRF, credential leakage, and insufficient response validation.
-- **Email and notification sending**: Template injection, header injection, spoofing, and phishing vector creation.
-- **Search functionality**: Injection via search terms, information disclosure via search results, denial of service through expensive queries.
-- **Export and download features**: Path traversal, information disclosure, CSV injection, and resource exhaustion.
+> **Human verification required before reporting.**
+>
+> Review each validated finding. To approve a finding for reporting:
+> 1. Move its folder from `findings/validated/` to `findings/verified/`
+> 2. Update the `stage` field in `finding.md` frontmatter to `"verified"`
+> 3. Update `last_moved` to the current timestamp
+> 4. Optionally add `reviewer_notes` in the frontmatter
+>
+> To reject a finding: move it to `findings/rejected/` and set `rejection_reason`.
+>
+> When ready, re-run `/breach:hunt` to generate reports for verified findings.
 
-### Tier 3 -- Hunt Last (Standard Analysis)
+**Stop execution here.** Do not proceed to reporting without human verification.
 
-Lower priority components that still warrant review but are less likely to yield critical findings:
+### Phase E: Reporting (on re-invocation)
 
-- **Read-only authenticated endpoints**: Information disclosure is possible but impact is typically limited without a chaining opportunity.
-- **Internal tooling**: Usually not internet-facing, reducing the attacker pool, but often has weaker security controls.
-- **Logging infrastructure**: Log injection and information disclosure in logs.
-- **Health check endpoints**: Typically minimal attack surface, but worth verifying they do not expose sensitive information.
-- **Static content serving**: Rarely vulnerable, but check for misconfigured directory listing and sensitive file exposure.
+When `/breach:hunt` is invoked again after human verification:
 
-**Hunt Tier 1 exhaustively before moving to Tier 2.** Complete Tier 2 before moving to Tier 3. The rationale is straightforward: Tier 1 targets have the highest impact (unauthenticated access or critical functionality), meaning findings here produce the most valuable results. Tier 2 targets have moderate impact and require more preconditions for exploitation. Tier 3 targets are lower priority but remain worth checking as they can serve as components in vulnerability chains.
+1. Check `findings/verified/` first. If verified findings exist:
+   - Invoke `/breach:report` to generate a complete security report covering all verified findings
+   - For each reported finding, update finding.md (`stage` to "reported", `last_moved` to current timestamp) and move the folder to `findings/reported/`
+2. After reporting, print a final summary and ask if the user wants to start a new discovery cycle on the same or different target.
 
-## Phase 3: Input Tracing and Discovery
+If no verified findings exist on re-invocation, check for findings in other stages:
+- If `potential/` has findings: resume from Phase C (validation)
+- If `validated/` has findings but `verified/` is empty: remind the user to verify findings before reporting
+- If all stages are empty: start a fresh pipeline from Phase A
 
-For each prioritized component, perform systematic input tracing. This is the core of the hunt -- follow every input from source to sink, documenting every transformation and control along the way.
+## Standalone Skills Note
 
-### Step 1: Identify All Input Sources
+All breach skills remain independently invocable:
 
-For the component under analysis, enumerate every source of external data. Be exhaustive:
+- `/breach:recon` — Attack surface mapping (standalone)
+- `/breach:code-analysis` — Vulnerability discovery (lifecycle-aware or standalone)
+- `/breach:validate` — Finding validation with PoC (lifecycle-aware or standalone)
+- `/breach:report` — Report generation (lifecycle gate in lifecycle mode, no gate in standalone)
 
-- URL parameters (query string and path segments)
-- Request body (form data, JSON, XML, multipart)
-- HTTP headers (standard and custom)
-- Cookies and session data
-- Uploaded file content and metadata (filename, content-type)
-- Database values that originated from prior user input (second-order)
-- Environment variables or configuration influenced by user actions
-- WebSocket frames and event data
-- Values from third-party APIs that may be attacker-influenced
+The orchestrator coordinates these skills but does not replace them.
 
-### Step 2: Trace Through Transformations
+## Edge Cases
 
-Follow each input through every function call, variable assignment, and transformation. Document the path completely: which functions process the input, what validations are applied, what encoding or decoding occurs, what business logic modifies the value.
+### Severity Changes During Validation
 
-### Step 3: Check Against Vulnerability Patterns
+If validation determines a different severity than initially assessed:
+1. Rename the finding folder to reflect the new severity (e.g., `HIGH-003-SQLI-endpoint/` → `MED-003-SQLI-endpoint/`)
+2. Update the `severity` field in finding.md frontmatter
+3. The ID remains unchanged
 
-At each transformation step, consult the applicable OWASP reference files for matching vulnerability patterns. The reference mapping below specifies which file to consult for each vulnerability class.
+### Partial Pipeline Resume
 
-### Step 4: Assess Exploitability
+The orchestrator detects the current state by examining which stage directories contain findings:
+- Findings in `potential/` only → resume from Phase C
+- Findings in `validated/` → proceed to Phase D (pause for verification)
+- Findings in `verified/` → proceed to Phase E (reporting)
+- Mix of stages → process each stage appropriately (validate potential, report verified)
 
-For each potential finding, answer these questions:
-- Can the attacker control the input? (If not, it is not exploitable.)
-- Does the input reach a dangerous sink without adequate sanitization?
-- Are there bypasses for existing controls? (Encoding tricks, alternate representations, logic flaws in validation.)
-- What is the actual impact if exploited?
+### Re-discovery with Existing Findings
 
-### Step 5: Document the Trace
+When running a new discovery cycle while previous findings exist:
+- New finding IDs continue the global sequence (scan all stages for max ID)
+- Existing findings in any stage are not modified or re-processed
+- Only new findings in `potential/` are validated in Phase C
 
-Record the complete trace for each finding: `source -> transformation1 -> transformation2 -> ... -> sink`. At each step, note what controls are present and what potential bypasses exist.
+## References
 
-## OWASP Reference File Mapping
-
-When investigating a specific vulnerability class, consult the corresponding reference file for detailed patterns, indicators, and bypass techniques:
-
-| Vulnerability Class | Reference File |
-|---------------------|----------------|
-| Broken access control (IDOR, privilege escalation, forced browsing, CORS) | `a01-broken-access-control.md` |
-| Cryptographic failures (weak algorithms, hardcoded keys, poor randomness) | `a02-cryptographic-failures.md` |
-| Injection (SQLi, NoSQLi, command injection, SSTI, LDAP, XPath) | `a03-injection.md` |
-| Insecure design (business logic, race conditions, missing rate limits) | `a04-insecure-design.md` |
-| Security misconfiguration (debug mode, default creds, missing headers) | `a05-security-misconfiguration.md` |
-| Vulnerable and outdated components (known CVEs, outdated libraries) | `a06-vulnerable-components.md` |
-| Authentication failures (credential stuffing, JWT flaws, session issues) | `a07-auth-failures.md` |
-| Software and data integrity failures (deserialization, CI/CD, mass assignment) | `a08-integrity-failures.md` |
-| Logging and monitoring failures (missing logs, log injection, data in logs) | `a09-logging-monitoring-failures.md` |
-| Server-side request forgery (direct SSRF, blind SSRF, cloud metadata) | `a10-ssrf.md` |
-
-## Vulnerability Chaining
-
-Individual findings often combine into chains with significantly higher impact than any single vulnerability alone. Actively look for these common chain patterns during the hunt:
-
-- **IDOR + Information Disclosure = Account Takeover**: An IDOR that leaks user data (email, security questions, tokens) combined with another IDOR or logic flaw in the password reset flow enables full account takeover.
-- **SSRF + Cloud Metadata = Credential Theft**: An SSRF that can reach the cloud metadata endpoint (169.254.169.254) can extract IAM credentials, database passwords, and API keys, often leading to full infrastructure compromise.
-- **Open Redirect + OAuth = Token Theft**: An open redirect on a whitelisted OAuth callback domain can intercept authorization codes or tokens, enabling account takeover.
-- **XSS + CSRF = Authenticated Action Execution**: An XSS vulnerability can be used to bypass CSRF protections and execute arbitrary actions in the context of any user who triggers the XSS payload.
-- **Path Traversal + File Upload = Remote Code Execution**: A file upload combined with a path traversal in the storage path can place executable content in web-accessible or executable directories.
-- **Information Disclosure + Password Reset = Account Takeover**: Leaked tokens, predictable reset links, or exposed user data combined with flaws in the password reset flow enable account takeover.
-- **Race Condition + Business Logic = Financial Fraud**: Race conditions in payment processing, coupon redemption, or balance operations can enable double-spending or resource duplication.
-
-When a finding is identified, always evaluate whether it can serve as a component in a chain. Document the chain potential for each finding.
-
-## Finding Documentation Format
-
-For each vulnerability discovered during the hunt, record the following:
-
-- **Vulnerability Class**: The category of the vulnerability (e.g., SQL Injection, IDOR, SSRF).
-- **Affected Component**: The specific file and line number where the vulnerability exists (format: `file:line`).
-- **Input Source**: Where the attacker-controlled data enters the application.
-- **Dangerous Sink**: Where the attacker-controlled data reaches a security-sensitive operation.
-- **Code Snippet**: The relevant vulnerable code, including sufficient context to understand the flaw.
-- **Confidence Level**: Confirmed (verified through trace), High (strong indicators with minor uncertainty), Medium (probable but requires runtime verification), or Low (theoretical or requires specific conditions).
-- **Preliminary Severity**: Critical, High, Medium, or Low, based on impact and exploitability.
-- **Chain Potential**: Other vulnerability classes this finding could combine with to increase impact.
-
-## Fallback: No Recon Output Available
-
-If this skill is invoked without output from a prior reconnaissance phase, perform rapid technology fingerprinting and entry point enumeration before beginning the hunt:
-
-1. **Technology Fingerprinting**: Identify the programming language(s), frameworks, libraries, database engines, and infrastructure components by examining package manifests, configuration files, import statements, and project structure.
-2. **Entry Point Enumeration**: Identify all routes, endpoints, API definitions, and external interfaces by examining route definitions, controller files, API schemas (OpenAPI, GraphQL SDL), and middleware configurations.
-3. **Architecture Mapping**: Determine the high-level architecture (monolith vs. microservices, frontend/backend separation, database access patterns) to understand trust boundaries and data flows.
-
-Proceed to Phase 1 after completing this rapid assessment.
-
-## Pipeline Continuation
-
-After completing the hunt and documenting all findings, proceed to validation:
-
-Run `/breach:validate` to generate proof-of-concept exploits for your findings.
+- `finding-template.md` — Canonical finding.md template with stage-by-stage population guide
+- `lifecycle-stages.md` — Stage definitions, transition rules, ID assignment, naming conventions
