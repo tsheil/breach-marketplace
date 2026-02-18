@@ -7,7 +7,7 @@ Security-focused plugin marketplace for [Claude Code](https://docs.anthropic.com
 Add the marketplace:
 
 ```
-/plugin add breach-marketplace
+/plugin marketplace add tsheil/breach-marketplace
 ```
 
 Install the breach plugin:

@@ -15,8 +15,7 @@
       },
       "source": "./plugins/breach",
       "category": "security",
-      "homepage": "https://github.com/tsheil/breach-marketplace",
-      "strict": false
+      "homepage": "https://github.com/tsheil/breach-marketplace"
     }
   ]
 }
