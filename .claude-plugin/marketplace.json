@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "breach-marketplace",
+  "description": "Security-focused plugin marketplace for Claude Code. Tools for vulnerability hunting, security review, and bug bounty workflows.",
+  "owner": {
+    "name": "Thomas Sheil"
+  },
+  "plugins": [
+    {
+      "name": "breach",
+      "description": "Security vulnerability hunting toolkit. Four-stage pipeline for expert bug hunters: attack surface reconnaissance, systematic vulnerability hunting, PoC validation, and bounty-ready reporting.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Thomas Sheil"
+      },
+      "source": "./plugins/breach",
+      "category": "security",
+      "homepage": "https://github.com/tsheil/breach-marketplace",
+      "strict": false
+    }
+  ]
+}
