@@ -20,14 +20,14 @@ Install plugins:
 
 | Plugin | Category | Description | Version |
 |--------|----------|-------------|---------|
-| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.5.0 |
+| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.6.0 |
 | [hackerone](plugins/hackerone/) | Utility | HackerOne bug bounty platform integration | 0.1.0 |
 
 ## Core Plugins
 
 ### breach
 
-Eight-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
+Nine-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
 
 ```mermaid
 flowchart LR
@@ -35,9 +35,10 @@ flowchart LR
 
     subgraph init ["Initialization (once)"]
         recon["breach-code-recon"]
+        custom["breach-custom-rules"]
         static["breach-static-scan"]
         val_static["validate static\nfindings"]
-        recon --> static --> val_static
+        recon --> custom --> static --> val_static
     end
 
     subgraph loop ["Discovery Loop (repeats)"]
@@ -63,8 +64,9 @@ flowchart LR
 | Skill | Purpose |
 |-------|---------|
 | `breach-code-recon` | Attack surface mapping -- threat modeling, technology fingerprinting, entry points, trust boundaries, auth inventory, git history analysis |
-| `breach-hunt` | Autonomous pipeline orchestrator -- initialization (code-recon → static-scan → validate), then continuous discovery loop (code-analysis with varied focus → dedup → validate → chain-analysis), runs until user stops |
-| `breach-static-scan` | Automated scanning -- Semgrep pattern matching + CodeQL dataflow analysis, deterministic vulnerability detection, runs once during initialization |
+| `breach-hunt` | Autonomous pipeline orchestrator -- initialization (code-recon → custom-rules → static-scan → validate), then continuous discovery loop (code-analysis with coverage-tracked focus and auto-shift → dedup → validate → chain-analysis), runs until user stops |
+| `breach-custom-rules` | Codebase-specific rule generation -- analyzes code-recon output to generate custom Semgrep rules and CodeQL queries targeting application-specific patterns (auth decorators, homegrown sinks, framework behaviors, trust boundaries) |
+| `breach-static-scan` | Automated scanning -- Semgrep pattern matching + CodeQL dataflow analysis, deterministic vulnerability detection, includes custom rulesets when present, runs once during initialization |
 | `breach-code-analysis` | Vulnerability discovery -- OWASP Top 10 coverage, risk-prioritized analysis, vulnerability chaining, varies focus each loop iteration for non-deterministic coverage |
 | `breach-findings` | Finding standards -- canonical reference for finding structure, naming, lifecycle stages, PoC standards, and directory layout |
 | `breach-validate-finding` | Finding validation -- 4-phase 12-step procedure with anti-hallucination gates, footgun detection, triager analysis, 3x reproduction, deduplication |

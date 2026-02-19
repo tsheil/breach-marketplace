@@ -28,10 +28,11 @@ All breach skill SKILL.md frontmatter must include a `name` field using the form
 - `breach-findings`
 - `breach-validate-finding`
 - `breach-chain-analysis`
+- `breach-custom-rules`
 - `breach-report`
 
 
-## Reference Projects
+## Reference Projects and Research
 The following projects are focused on using AI for vulnerability discovery and should be referenced for ideas and inspiration.
 
 ### Claude Code Plugin Marketplaces
@@ -43,3 +44,5 @@ https://github.com/ghostsecurity/skills - Plugin marketplace repository for Ghos
 https://github.com/gadievron/raptor - RAPTOR is an autonomous offensive/defensive security research framework, based on Claude Code. It empowers security research with agentic workflows and automation.
 https://github.com/KeygraphHQ/shannon - Shannon is an AI pentester that delivers actual exploits, not just alerts.
 
+### ARXIV
+https://www.arxiv.org/abs/2602.07666 - SoK: DARPA's AI Cyber Challenge (AIxCC): Competition Design, Architectures, and Lessons Learned

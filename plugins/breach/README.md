@@ -2,7 +2,7 @@
 
 Security vulnerability hunting toolkit for Claude Code.
 
-Eight-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
+Nine-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
 
 ## Requirements
 
@@ -31,7 +31,7 @@ ln -s /path/to/breach ~/.claude/plugins/breach
                 ┌──────────────┴──────────────────────────────────────────────────────┐
                 │                                                                      │
   Initialization (once):                                                               │
-  /breach:code-recon --> /breach:static-scan --> validate static findings               │
+  /breach:code-recon --> /breach:custom-rules --> /breach:static-scan --> validate       │
                 │                                                                      │
   Discovery Loop (repeats until user stops):                                           │
                 │       ┌─────────────────────────────────────────────┐                │
@@ -58,15 +58,21 @@ Supports two output modes: executive brief (quick scan) and full attack surface 
 
 ### breach-hunt -- Autonomous Pipeline Orchestrator
 
-Orchestrates the breach pipeline as an autonomous loop. Initialization runs once: code-recon → static-scan → validate static findings. Then the discovery loop cycles continuously: code-analysis (varying focus each iteration) → deduplicate → validate → chain-analysis → iteration summary → loop back. Each pass intentionally varies its focus — different code areas, vulnerability classes, attacker perspectives, and analysis approaches — exploiting non-deterministic AI analysis to maximize coverage.
+Orchestrates the breach pipeline as an autonomous loop. Initialization runs once: code-recon → custom-rules → static-scan → validate static findings. Then the discovery loop cycles continuously: code-analysis (with coverage-tracked focus selection) → deduplicate → validate → chain-analysis → iteration summary → loop back. Each pass selects focus across 4 dimensions (territory, analysis approach, attacker perspective, OWASP vuln class) using a persistent coverage tracker (`findings/hunt-coverage.md`), with auto-shift triggered after 3 consecutive dry iterations.
 
 The loop runs until the user stops it. On re-invocation after human verification, generates reports for verified findings.
 
+### breach-custom-rules -- Codebase-Specific Rule Generation
+
+Generates custom Semgrep rules and CodeQL queries tailored to the target codebase. Analyzes code-recon output to identify gaps in stock ruleset coverage — custom auth decorators, homegrown sinks, framework-specific behaviors, trust boundary violations — and produces rules targeting those application-specific patterns. Rules are written to `custom-rules/semgrep/` and `custom-rules/codeql/` in the project root and automatically consumed by `/breach:static-scan`.
+
+Invoked during initialization (between code-recon and static-scan) or standalone. Prioritizes 10 rule categories from auth enforcement gaps through error handling leaks.
+
 ### breach-static-scan -- Automated Security Scanning
 
-Integrates Semgrep (pattern matching) and CodeQL (semantic dataflow analysis) for deterministic vulnerability detection. Detects tools on PATH, asks user consent before installing missing tools, runs security-focused rulesets, and maps results to breach severity and vulnerability types.
+Integrates Semgrep (pattern matching) and CodeQL (semantic dataflow analysis) for deterministic vulnerability detection. Detects tools on PATH, asks user consent before installing missing tools, runs security-focused rulesets, and maps results to breach severity and vulnerability types. Automatically includes custom rulesets from `custom-rules/` when present.
 
-In lifecycle mode, creates finding folders in `findings/potential/` with `source` field set to "semgrep" or "codeql". Runs once during initialization (deterministic — re-running produces identical results).
+In lifecycle mode, creates finding folders in `findings/potential/` with `source` field set to "semgrep", "codeql", "custom-semgrep", or "custom-codeql". Runs once during initialization (deterministic — re-running produces identical results).
 
 ### breach-code-analysis -- Vulnerability Discovery
 
@@ -112,7 +118,7 @@ findings/
 
 **Finding folders** follow the naming convention `{SEVERITY}-{ID}-{VULN_TYPE}-{desc}/` (e.g., `HIGH-003-SQLI-user-search-endpoint/`) and contain a `finding.md` with YAML frontmatter and structured markdown sections, plus a `poc/` directory for exploit scripts. Chain findings use the convention `{SEVERITY}-{ID}-CHAIN-{desc}/`.
 
-**Finding metadata** includes a `source` field ("manual", "semgrep", or "codeql") to track how each finding was discovered, and a `chain_components` field for chain findings that lists the IDs of component findings.
+**Finding metadata** includes a `source` field ("manual", "semgrep", "codeql", "custom-semgrep", or "custom-codeql") to track how each finding was discovered, and a `chain_components` field for chain findings that lists the IDs of component findings.
 
 **Human verification** is the critical gate between validation and reporting. After the user stops the discovery loop, a human reviewer must:
 1. Review each finding in `findings/validated/`
@@ -131,7 +137,7 @@ This ensures no finding reaches the final report without human review.
 - **Human-in-the-loop** -- AI discovers and validates in a loop, humans verify after stopping before reporting.
 - **Tool-augmented** -- combines deterministic tool analysis (one-time) with AI-driven manual review (looped) for maximum coverage.
 - **Chain-aware** -- dedicated analysis identifies escalated impact from finding combinations.
-- **Suggested pipeline** -- each skill recommends the next stage but all eight work independently.
+- **Suggested pipeline** -- each skill recommends the next stage but all nine work independently.
 - **OWASP Top 10 focused** -- hunting methodology maps directly to the OWASP Top 10 2021.
 - **Standardized PoCs** -- findings skill defines PoC standards; validation verifies compliance.
 - **Anti-hallucination** -- validation includes hard gates that reject fabricated file paths, functions, and data flows.
@@ -148,6 +154,7 @@ Each skill carries its own reference files under `skills/<skill>/references/`.
 | hunt | `skills/hunt/references/` | Security review principles (mindset, evidence, methodology, severity calibration) |
 | validate-finding | `skills/validate-finding/references/` | Triager analysis reference (triager perspective, N/A patterns, AI slop detection) |
 | chain-analysis | `skills/chain-analysis/references/` | Vulnerability chain pattern catalog |
+| custom-rules | `skills/custom-rules/references/` | Rule categories taxonomy, Semgrep rule syntax, CodeQL query syntax |
 | report | `skills/report/references/` | Report template, CVSS v3.1 scoring guide, bounty writing wisdom |
 
 ## License

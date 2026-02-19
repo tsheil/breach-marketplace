@@ -102,7 +102,7 @@ stage: "potential"        # potential | confirmed | validated | verified | repor
 vuln_type: ""             # Freeform shorthand (XSS, SQLI, IDOR, RCE, SSRF, CHAIN, etc.)
 affected_component: ""    # file:line format
 confidence: ""            # Confirmed | High | Medium | Low (empty until validated)
-source: ""                # "manual" | "semgrep" | "codeql" (default: "manual")
+source: ""                # "manual" | "semgrep" | "codeql" | "custom-semgrep" | "custom-codeql" (default: "manual")
 chain_components: []      # List of finding IDs this chain comprises (empty for non-chain findings)
 created_at: ""            # ISO 8601
 last_moved: ""            # ISO 8601

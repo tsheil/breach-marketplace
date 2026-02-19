@@ -29,6 +29,8 @@ findings/
 
 Create this silently — do not prompt the user for confirmation.
 
+Also check for `findings/hunt-coverage.md`. This file tracks strategy usage and component/vuln-class coverage across iterations. If it exists, resume tracking from its recorded state. If it does not exist, it will be created at the end of the first iteration.
+
 ## Pipeline Execution
 
 ### Phase A: Initialization (runs once)
@@ -43,15 +45,25 @@ Invoke `/breach:code-recon` on the target codebase to map the attack surface. Th
 
 If the user has already run code-recon or provides recon output, skip this step.
 
-#### A.3 Static Scan
+#### A.3 Custom Rule Generation
+
+Invoke `/breach:custom-rules` using the code-recon output from A.2. This generates codebase-specific Semgrep rules and CodeQL queries targeting application-specific patterns that stock rulesets miss — custom auth decorators, homegrown sinks, framework-specific behaviors, and trust boundary violations.
+
+Rules are written to `custom-rules/semgrep/` and `custom-rules/codeql/` in the project root. These are automatically picked up by static-scan in the next step.
+
+If Semgrep and CodeQL are both unavailable, skip this step.
+
+#### A.4 Static Scan
 
 Invoke `/breach:static-scan` for deterministic pattern matching and dataflow analysis. Static scanning is deterministic — identical results every run — so it executes once during initialization, not inside the loop.
+
+If `custom-rules/` exists in the project root, static-scan automatically includes custom rulesets alongside stock rules (see `/breach:static-scan` for details).
 
 Tool-generated findings include a `source` field in frontmatter ("semgrep" or "codeql"). Findings are created in `findings/potential/`.
 
 If static-scan tools are unavailable and the user declines installation, skip this step.
 
-#### A.4 Validate Static-Scan Findings
+#### A.5 Validate Static-Scan Findings
 
 Process all findings from static-scan in `findings/potential/` through `/breach:validate-finding`:
 
@@ -66,14 +78,21 @@ After initialization completes, begin the autonomous discovery loop. Repeat B.1 
 
 Invoke `/breach:code-analysis` to discover vulnerabilities through manual code review. Manual findings have `source: "manual"` in frontmatter.
 
-**Vary focus each iteration.** Before starting analysis, review what has already been found by scanning `findings/validated/` and `findings/rejected/`. Then intentionally shift focus using these strategies:
+**Coverage-driven focus selection.** Before starting analysis, read `findings/hunt-coverage.md` (if it exists) and select focus across 4 dimensions, choosing the least-used values from the Strategy Usage Log:
 
-- **Explore uncovered territory**: Target components, modules, and vulnerability classes not yet represented in existing findings.
-- **Rotate analysis approaches**: Alternate between broad sweeps (survey many components quickly), deep dives (exhaustive review of one component), variant hunting (find variations of validated findings), reverse trace from sinks (start from dangerous functions and trace inputs backwards), and adversarial review of rejections (re-examine rejected findings from a different angle).
-- **Rotate attacker perspectives**: Cycle through unauthenticated external attacker, authenticated regular user, privileged/admin user, and malicious insider.
-- **Explore different vulnerability classes**: Don't repeat the same OWASP categories — if prior iterations found injection flaws, focus on broken access control, cryptographic failures, or SSRF.
+- **A — Territory**: Select components from the Coverage Matrix gaps (cells marked `-`). Prioritize components with the fewest covered vuln classes.
+- **B — Analysis Approach**: Pick the least-used from: `broad-sweep` (survey many components quickly), `deep-dive` (exhaustive review of one component), `variant-hunt` (find variations of validated findings), `reverse-trace` (start from dangerous functions and trace inputs backwards), `adversarial-rejections` (re-examine rejected findings from a different angle).
+- **C — Attacker Perspective**: Pick the least-used from: `unauth-external` (unauthenticated external attacker), `auth-regular` (authenticated regular user), `privileged-admin` (privileged/admin user), `malicious-insider` (malicious insider with code access).
+- **D — Vuln Class Focus**: Pick the least-used OWASP category from: `a01` (Broken Access Control), `a02` (Cryptographic Failures), `a03` (Injection), `a04` (Insecure Design), `a05` (Security Misconfiguration), `a06` (Vulnerable Components), `a07` (Auth Failures), `a08` (Data Integrity Failures), `a09` (Logging Failures), `a10` (SSRF).
 
-The agent uses its conversation context and the findings directory state to decide what to focus on. No formal tracking structure is needed — just be intentionally different each pass.
+**Auto-shift on diminishing returns.** When `consecutive_dry_iterations >= 3` (three consecutive iterations with zero validated findings), trigger an auto-shift: select the least-used value in ALL four dimensions simultaneously, reset the dry streak counter to 0, and announce the shift before proceeding.
+
+Announce the selected focus before invoking code-analysis:
+```
+Focus: {approach} + {perspective} + {vuln_class} on {components}
+```
+
+If `findings/hunt-coverage.md` does not exist yet (first iteration), choose freely and the file will be created at the end of this iteration.
 
 #### B.2 Deduplicate New Findings
 
@@ -99,17 +118,121 @@ If fewer than 2 validated findings exist, skip chain analysis.
 
 #### B.5 Iteration Summary
 
+After completing B.4, update `findings/hunt-coverage.md`:
+
+1. **Update YAML frontmatter**: Increment `total_iterations`, update `consecutive_dry_iterations` (reset to 0 if new validated findings this iteration, increment otherwise), set `last_updated` to current timestamp, set `current_strategy_focus` to this iteration's focus string.
+2. **Append row to Strategy Usage Log**: Record iteration number, approach (B), perspective (C), vuln class (D), components targeted, new validated count, new rejected count.
+3. **Update Coverage Matrix**: For each component-vuln class pair analyzed this iteration, write the iteration number into the corresponding cell (replacing `-`).
+4. **Regenerate Uncovered Territory**: List components and vuln classes with no coverage (cells still `-`).
+
+If `findings/hunt-coverage.md` does not exist, create it with the full format (see Coverage Tracking section below) and populate with this iteration's data.
+
 Print a compact summary between iterations:
 
 ```
 ── Iteration {N} Complete ──────────────────────────
+Focus this iteration:         {approach} + {perspective} + {vuln class} on {components}
 New findings this iteration:  {count} discovered, {validated} validated, {rejected} rejected
 Cumulative:                   {total_validated} validated, {total_rejected} rejected, {total_chains} chains
-Next iteration focus:         {brief description of planned focus shift}
+Coverage:                     {filled}/{total} component-vuln pairs ({percent}%)
+Dry streak:                   {consecutive_dry} iterations ({remaining} until auto-shift)
+Next iteration focus:         {planned focus}
+────────────────────────────────────────────────────
+```
+
+When an auto-shift is triggered, use this variant instead:
+
+```
+── Iteration {N} Complete ── AUTO-SHIFT TRIGGERED ──
+Focus this iteration:         {approach} + {perspective} + {vuln class} on {components}
+New findings this iteration:  0 discovered, 0 validated, 0 rejected
+Cumulative:                   {total_validated} validated, {total_rejected} rejected, {total_chains} chains
+Coverage:                     {filled}/{total} component-vuln pairs ({percent}%)
+Dry streak:                   3 iterations → AUTO-SHIFTING to least-explored dimensions
+Next iteration focus:         {auto-selected focus across all 4 dimensions}
 ────────────────────────────────────────────────────
 ```
 
 Then immediately begin the next iteration at B.1. Do not pause or ask for confirmation.
+
+### Coverage Tracking
+
+The `findings/hunt-coverage.md` file provides persistent strategy tracking across iterations. It is created automatically at the end of the first iteration and updated at the end of every subsequent iteration.
+
+#### File Format
+
+```markdown
+---
+created_at: ""
+last_updated: ""
+total_iterations: 0
+consecutive_dry_iterations: 0
+last_shift_iteration: 0
+current_strategy_focus: ""
+---
+
+# Hunt Coverage Tracker
+
+## Strategy Usage Log
+
+| Iter | Analysis Approach (B) | Attacker Perspective (C) | Vuln Class Focus (D) | Components Targeted | New Validated | New Rejected |
+|------|----------------------|--------------------------|---------------------|---------------------|---------------|--------------|
+
+## Coverage Matrix
+
+| Component | A01 | A02 | A03 | A04 | A05 | A06 | A07 | A08 | A09 | A10 |
+|-----------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+
+## Uncovered Territory
+
+Components not yet analyzed: (derived from recon)
+Vuln classes not yet applied: (derived from OWASP A01-A10)
+```
+
+#### YAML Frontmatter Fields
+
+| Field | Description |
+|-------|-------------|
+| `created_at` | ISO 8601 timestamp when the file was created (first iteration) |
+| `last_updated` | ISO 8601 timestamp of the most recent update |
+| `total_iterations` | Total number of completed iterations |
+| `consecutive_dry_iterations` | Number of consecutive iterations with zero validated findings |
+| `last_shift_iteration` | Iteration number when auto-shift was last triggered (0 if never) |
+| `current_strategy_focus` | Human-readable string of the current focus (e.g., "deep-dive + auth-regular + a01 on auth-module") |
+
+#### Strategy Usage Log
+
+One row per completed iteration. Used to determine least-used values across dimensions B, C, and D.
+
+#### Coverage Matrix
+
+Components (rows) are derived from code-recon output. OWASP categories A01-A10 are columns. Each cell contains the iteration number when that component-vuln class pair was analyzed, or `-` if not yet covered.
+
+The matrix is populated from code-recon components at file creation. New components discovered during analysis are added as new rows.
+
+#### Uncovered Territory
+
+Derived section listing:
+- Components with the most `-` cells (least coverage)
+- Vuln classes (columns) with the most `-` cells
+- Specific component-vuln pairs never analyzed
+
+#### Auto-Shift Algorithm
+
+When `consecutive_dry_iterations` reaches 3:
+1. Select the analysis approach (B) with the fewest uses in Strategy Usage Log
+2. Select the attacker perspective (C) with the fewest uses
+3. Select the vuln class (D) with the fewest uses
+4. Select the component (A) with the most `-` cells in Coverage Matrix
+5. Reset `consecutive_dry_iterations` to 0
+6. Record `last_shift_iteration` as the current iteration number
+7. Announce the auto-shift before proceeding to B.1
+
+#### Backward Compatibility
+
+- First iteration: `hunt-coverage.md` does not exist — choose focus freely, create file at iteration end
+- Missing file on subsequent invocations: treat as fresh start (no prior data)
+- File exists: resume from recorded state
 
 ### Phase C: Review & Reporting (after user stops the loop)
 
@@ -147,6 +270,7 @@ All breach skills remain independently invocable:
 - `/breach:code-analysis` — Manual vulnerability discovery (lifecycle-aware or standalone)
 - `/breach:validate-finding` — Finding validation with anti-hallucination gates, triager analysis, and PoC verification (lifecycle-aware or standalone)
 - `/breach:findings` — Canonical reference for finding structure, naming, lifecycle, and PoC standards
+- `/breach:custom-rules` — Custom Semgrep/CodeQL rule generation (standalone or pipeline)
 - `/breach:chain-analysis` — Vulnerability chain discovery (lifecycle-aware or standalone)
 - `/breach:report` — Report generation (lifecycle gate in lifecycle mode, no gate in standalone)
 
@@ -168,6 +292,7 @@ The orchestrator detects the current state by examining which stage directories 
 - Findings in `validated/` → instruct user to verify before reporting
 - Findings in `verified/` → proceed to reporting (Phase C)
 - Mix of stages → process each stage appropriately (validate potential, report verified)
+- `hunt-coverage.md` exists → resume coverage tracking from recorded state
 
 ### Re-discovery with Existing Findings
 
