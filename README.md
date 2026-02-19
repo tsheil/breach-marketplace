@@ -10,19 +10,23 @@ Add the marketplace:
 /plugin marketplace add tsheil/breach-marketplace
 ```
 
-Install the breach plugin:
+Install plugins:
 
 ```
 /plugin install breach@breach-marketplace
+/plugin install hackerone@breach-marketplace
 ```
 
 ## Available Plugins
 
-| Plugin | Description | Version |
-|--------|-------------|---------|
-| [breach](plugins/breach/) | Security vulnerability hunting toolkit | 1.3.1 |
+| Plugin | Category | Description | Version |
+|--------|----------|-------------|---------|
+| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.3.1 |
+| [hackerone](plugins/hackerone/) | Utility | HackerOne bug bounty platform integration | 0.1.0 |
 
-## breach
+## Core Plugins
+
+### breach
 
 Eight-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
 
@@ -52,6 +56,20 @@ Eight-skill pipeline for systematic source code security review with a filesyste
 | `/breach:report` | Report generation -- CVSS v3.1 scoring, reproduction steps, bounty-optimized presentation, hard gate on human-verified findings |
 
 See [plugins/breach/README.md](plugins/breach/README.md) for full documentation.
+
+## Utility Plugins
+
+### hackerone
+
+HackerOne bug bounty platform integration. Navigate programs, reports, hacktivity, and earnings via the HackerOne Hacker API.
+
+**Requirements:** Python 3, HackerOne API credentials (username + API token).
+
+| Skill | Purpose |
+|-------|---------|
+| `/hackerone` | Navigate HackerOne platform -- program research, report management, hacktivity intelligence, balance and earnings |
+
+See [plugins/hackerone/README.md](plugins/hackerone/README.md) for full documentation.
 
 ## License
 

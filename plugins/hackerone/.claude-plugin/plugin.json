@@ -1,0 +1,9 @@
+{
+  "name": "hackerone",
+  "version": "0.1.0",
+  "description": "HackerOne bug bounty platform integration. Navigate programs, reports, hacktivity, and earnings via the HackerOne Hacker API.",
+  "author": {
+    "name": "Thomas Sheil"
+  },
+  "license": "Apache-2.0"
+}
