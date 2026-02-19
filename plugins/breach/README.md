@@ -42,47 +42,47 @@ ln -s /path/to/breach ~/.claude/plugins/breach
 
 The orchestrator (`/breach:hunt`) runs the full pipeline and manages the finding lifecycle. All skills also work standalone. The `/breach:findings` skill provides the canonical reference for finding structure, naming, and lifecycle consumed by all other skills.
 
-### /breach:code-recon -- Attack Surface Mapping
+### breach-code-recon -- Attack Surface Mapping
 
 Source code reconnaissance with threat modeling. Maps the target codebase attack surface: application context and threat model, technology fingerprinting, entry point enumeration, trust boundary mapping, auth/authz inventory, data flow tracing, secrets audit, and git history analysis.
 
 Supports two output modes: executive brief (quick scan) and full attack surface map (default). Produces a prioritized attack surface map consumed by the discovery phase.
 
-### /breach:hunt -- Pipeline Orchestrator
+### breach-hunt -- Pipeline Orchestrator
 
 Orchestrates the complete breach pipeline: code-recon → static-scan + code-analysis (parallel) → validate → chain-analysis → report. Manages the finding lifecycle, creates the `findings/` directory structure, coordinates discovery and validation in batch, and pauses for human verification before reporting.
 
 On re-invocation after human verification, generates reports for verified findings.
 
-### /breach:static-scan -- Automated Security Scanning
+### breach-static-scan -- Automated Security Scanning
 
 Integrates Semgrep (pattern matching) and CodeQL (semantic dataflow analysis) for deterministic vulnerability detection. Detects tools on PATH, asks user consent before installing missing tools, runs security-focused rulesets, and maps results to breach severity and vulnerability types.
 
 In lifecycle mode, creates finding folders in `findings/potential/` with `source` field set to "semgrep" or "codeql". Runs in parallel with code-analysis during the hunt pipeline.
 
-### /breach:code-analysis -- Vulnerability Discovery
+### breach-code-analysis -- Vulnerability Discovery
 
 Systematic vulnerability discovery driven by the code-recon output. Component-to-vulnerability mapping, risk-prioritized hunting across three tiers, systematic input tracing, full OWASP Top 10 coverage, and vulnerability chaining analysis.
 
 In lifecycle mode (when `findings/` directory exists), creates finding folders in `findings/potential/` with structured `finding.md` files. In standalone mode, outputs findings to conversation.
 
-### /breach:findings -- Finding Structure & Lifecycle
+### breach-findings -- Finding Structure & Lifecycle
 
 Canonical reference for finding structure, naming conventions, lifecycle stages, PoC standards, and directory layout. Defines the finding.md template, YAML frontmatter fields, stage-by-stage population guide, ID assignment procedure, severity rename rules, file ownership table, and storage hygiene requirements. All other skills defer to this skill for finding-related definitions.
 
-### /breach:validate-finding -- Finding Validation
+### breach-validate-finding -- Finding Validation
 
 Validates each finding through a 4-phase, 12-step procedure with anti-hallucination gates, footgun detection, triager perspective analysis, 3x reproduction, deduplication, and mandatory devil's advocate severity challenge. Verifies existing PoCs against quality standards rather than generating new ones.
 
 In lifecycle mode, processes findings from `findings/potential/` and `findings/confirmed/`, creates `validation-result.md` artifacts, and moves validated findings to `findings/validated/` or rejected findings to `findings/rejected/`. In standalone mode, operates from conversation context.
 
-### /breach:chain-analysis -- Vulnerability Chain Discovery
+### breach-chain-analysis -- Vulnerability Chain Discovery
 
 Systematically analyzes validated findings to identify vulnerability chains — combinations of two or more findings that produce escalated impact. Checks all finding pairs against known chain patterns (IDOR + info disclosure → account takeover, SSRF + cloud metadata → infra compromise, etc.) and performs adjacency analysis for novel chains.
 
 In lifecycle mode, creates chain findings in `findings/validated/` with `vuln_type: "CHAIN"` and `chain_components` listing component IDs. In standalone mode, outputs chains to conversation.
 
-### /breach:report -- Report Generation
+### breach-report -- Report Generation
 
 Generates a complete markdown security report. CVSS v3.1 scoring, structured findings with reproduction steps, bounty-optimized presentation, attack chain analysis, and prioritized remediation guidance.
 

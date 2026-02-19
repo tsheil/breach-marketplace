@@ -16,6 +16,20 @@ Use and reference these to ensure best practices.
 
 **Version bumps are required for auto-update.** Always bump at least the patch version (e.g., 1.4.0 → 1.4.1) in both `plugin.json` and `marketplace.json` on every change. Without a version bump, Claude Code instances with the plugin installed will not pick up the update.
 
+**Before committing:** Verify both READMEs are up to date with current skill names, descriptions, and pipeline diagrams. The READMEs are the primary documentation for users — stale READMEs cause confusion.
+
+### Skill naming convention
+
+All breach skill SKILL.md frontmatter must include a `name` field using the format `breach-{skill-name}`:
+- `breach-code-recon`
+- `breach-hunt`
+- `breach-static-scan`
+- `breach-code-analysis`
+- `breach-findings`
+- `breach-validate-finding`
+- `breach-chain-analysis`
+- `breach-report`
+
 
 ## Reference Projects
 The following projects are focused on using AI for vulnerability discovery and should be referenced for ideas and inspiration.
