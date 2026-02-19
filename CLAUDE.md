@@ -1,5 +1,11 @@
 ## Skill Development
-Use the skill-creator skill when creating new skills and updating existing skills.
+The core breach skills are designed to be used together in a cohesive framework and also as standalone skills.
+Make sure the core breach skills do not conflict with each other.
+
+### Core Development Skills
+Use and reference these to ensure best practices.
+- skill-creator
+- plugin dev
 
 ### When modifying skills:
 
@@ -7,6 +13,8 @@ Use the skill-creator skill when creating new skills and updating existing skill
 2. Update `README.md` (marketplace README)
 3. Update `plugins/breach/.claude-plugin/plugin.json` (description + version bump)
 4. Update `.claude-plugin/marketplace.json` (description + version bump)
+
+**Version bumps are required for auto-update.** Always bump at least the patch version (e.g., 1.4.0 → 1.4.1) in both `plugin.json` and `marketplace.json` on every change. Without a version bump, Claude Code instances with the plugin installed will not pick up the update.
 
 
 ## Reference Projects

@@ -1,6 +1,6 @@
 {
   "name": "breach",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Security vulnerability hunting toolkit. Eight-skill pipeline with finding lifecycle for expert bug hunters: source code reconnaissance with threat modeling and git history analysis, automated static scanning (Semgrep + CodeQL), systematic code analysis, canonical finding structure and PoC standards, finding validation with anti-hallucination gates and triager analysis, vulnerability chain discovery, human-verified reporting, and pipeline orchestration.",
   "author": { "name": "Thomas Sheil" },
   "license": "Apache-2.0"

@@ -20,7 +20,7 @@ Install plugins:
 
 | Plugin | Category | Description | Version |
 |--------|----------|-------------|---------|
-| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.4.0 |
+| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.4.1 |
 | [hackerone](plugins/hackerone/) | Utility | HackerOne bug bounty platform integration | 0.1.0 |
 
 ## Core Plugins
