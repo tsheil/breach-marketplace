@@ -30,17 +30,25 @@ ln -s /path/to/breach ~/.claude/plugins/breach
                              /breach:hunt (orchestrator)
                 ┌──────────────┴──────────────────────────────────────────────────────┐
                 │                                                                      │
-                │                ┌── parallel ──┐                                      │
-/breach:code-recon --│--> /breach:static-scan   │--> /breach:validate-finding --> /breach:chain-analysis --> /breach:report
-                │         /breach:code-analysis  │                                      │
-                │                └──────────────┘                                      │
-                │                                            ┌─ human verify ──────────┘
-                │                                            ▼
-                │                                      findings/verified/
-                └──────────────────────────────────────────────────────────────────────┘
+  Initialization (once):                                                               │
+  /breach:code-recon --> /breach:static-scan --> validate static findings               │
+                │                                                                      │
+  Discovery Loop (repeats until user stops):                                           │
+                │       ┌─────────────────────────────────────────────┐                │
+                │       │  /breach:code-analysis (vary focus)         │                │
+                │       │  dedup → /breach:validate-finding           │                │
+                │       │  /breach:chain-analysis                     │                │
+                │       │  iteration summary → loop back              │                │
+                │       └─────────────────────────────────────────────┘                │
+                │                                                                      │
+  Review & Reporting (after user stops):             ┌─ human verify ──────────────────┘
+                │                                    ▼
+                │                              findings/verified/
+                │                                    │
+                └── /breach:report ◄─────────────────┘
 ```
 
-The orchestrator (`/breach:hunt`) runs the full pipeline and manages the finding lifecycle. All skills also work standalone. The `/breach:findings` skill provides the canonical reference for finding structure, naming, and lifecycle consumed by all other skills.
+The orchestrator (`/breach:hunt`) runs one-time initialization, then loops discovery-validation continuously — each pass finds different vulnerabilities through non-deterministic analysis. The loop runs until the user stops it. All skills also work standalone. The `/breach:findings` skill provides the canonical reference for finding structure, naming, and lifecycle consumed by all other skills.
 
 ### breach-code-recon -- Attack Surface Mapping
 
@@ -48,23 +56,23 @@ Source code reconnaissance with threat modeling. Maps the target codebase attack
 
 Supports two output modes: executive brief (quick scan) and full attack surface map (default). Produces a prioritized attack surface map consumed by the discovery phase.
 
-### breach-hunt -- Pipeline Orchestrator
+### breach-hunt -- Autonomous Pipeline Orchestrator
 
-Orchestrates the complete breach pipeline: code-recon → static-scan + code-analysis (parallel) → validate → chain-analysis → report. Manages the finding lifecycle, creates the `findings/` directory structure, coordinates discovery and validation in batch, and pauses for human verification before reporting.
+Orchestrates the breach pipeline as an autonomous loop. Initialization runs once: code-recon → static-scan → validate static findings. Then the discovery loop cycles continuously: code-analysis (varying focus each iteration) → deduplicate → validate → chain-analysis → iteration summary → loop back. Each pass intentionally varies its focus — different code areas, vulnerability classes, attacker perspectives, and analysis approaches — exploiting non-deterministic AI analysis to maximize coverage.
 
-On re-invocation after human verification, generates reports for verified findings.
+The loop runs until the user stops it. On re-invocation after human verification, generates reports for verified findings.
 
 ### breach-static-scan -- Automated Security Scanning
 
 Integrates Semgrep (pattern matching) and CodeQL (semantic dataflow analysis) for deterministic vulnerability detection. Detects tools on PATH, asks user consent before installing missing tools, runs security-focused rulesets, and maps results to breach severity and vulnerability types.
 
-In lifecycle mode, creates finding folders in `findings/potential/` with `source` field set to "semgrep" or "codeql". Runs in parallel with code-analysis during the hunt pipeline.
+In lifecycle mode, creates finding folders in `findings/potential/` with `source` field set to "semgrep" or "codeql". Runs once during initialization (deterministic — re-running produces identical results).
 
 ### breach-code-analysis -- Vulnerability Discovery
 
 Systematic vulnerability discovery driven by the code-recon output. Component-to-vulnerability mapping, risk-prioritized hunting across three tiers, systematic input tracing, full OWASP Top 10 coverage, and vulnerability chaining analysis.
 
-In lifecycle mode (when `findings/` directory exists), creates finding folders in `findings/potential/` with structured `finding.md` files. In standalone mode, outputs findings to conversation.
+In lifecycle mode (when `findings/` directory exists), creates finding folders in `findings/potential/` with structured `finding.md` files. In standalone mode, outputs findings to conversation. In the hunt loop, each iteration varies focus to explore different code areas, vulnerability classes, and attacker perspectives.
 
 ### breach-findings -- Finding Structure & Lifecycle
 
@@ -106,7 +114,7 @@ findings/
 
 **Finding metadata** includes a `source` field ("manual", "semgrep", or "codeql") to track how each finding was discovered, and a `chain_components` field for chain findings that lists the IDs of component findings.
 
-**Human verification** is the critical gate between validation and reporting. After the orchestrator validates findings, a human reviewer must:
+**Human verification** is the critical gate between validation and reporting. After the user stops the discovery loop, a human reviewer must:
 1. Review each finding in `findings/validated/`
 2. Move approved findings to `findings/verified/`
 3. Update the `stage` field in `finding.md` frontmatter
@@ -118,9 +126,10 @@ This ensures no finding reaches the final report without human review.
 
 - **Expert audience** -- assumes working knowledge of application security; no hand-holding.
 - **Language-agnostic** -- hunts universal vulnerability patterns across any stack.
+- **Non-deterministic coverage** -- AI code analysis produces different results each run; the autonomous loop exploits this by varying focus each iteration to maximize total vulnerability coverage over time.
 - **Strict evidence bar** -- every finding requires six evidence elements or it is discarded.
-- **Human-in-the-loop** -- AI discovers and validates, humans verify before reporting.
-- **Tool-augmented** -- combines deterministic tool analysis with AI-driven manual review for maximum coverage.
+- **Human-in-the-loop** -- AI discovers and validates in a loop, humans verify after stopping before reporting.
+- **Tool-augmented** -- combines deterministic tool analysis (one-time) with AI-driven manual review (looped) for maximum coverage.
 - **Chain-aware** -- dedicated analysis identifies escalated impact from finding combinations.
 - **Suggested pipeline** -- each skill recommends the next stage but all eight work independently.
 - **OWASP Top 10 focused** -- hunting methodology maps directly to the OWASP Top 10 2021.

@@ -1,13 +1,13 @@
 ---
 name: breach-hunt
-description: "Hunt for vulnerabilities with a full breach pipeline. This skill should be used when the user asks to hunt for vulnerabilities, perform a security audit, run a comprehensive code security review, execute the full breach pipeline, manage the finding lifecycle, run code-recon through reporting, or perform systematic vulnerability discovery and validation. Orchestrates the complete workflow from reconnaissance through validated findings."
+description: "Hunt for vulnerabilities with an autonomous looping breach pipeline. This skill should be used when the user asks to hunt for vulnerabilities, perform a security audit, run a comprehensive code security review, execute the full breach pipeline, manage the finding lifecycle, run code-recon through reporting, or perform systematic vulnerability discovery and validation. Orchestrates initialization, then loops discovery-validation continuously — each pass finds different vulnerabilities through non-deterministic analysis. Runs until the user stops it."
 ---
 
-# Hunt: Breach Pipeline Orchestrator
+# Hunt: Autonomous Breach Pipeline
 
-This skill orchestrates the complete breach pipeline: reconnaissance, code analysis, validation, and reporting. It manages the finding lifecycle, coordinating the individual skills into a batch workflow while tracking findings through filesystem-based stages.
+This skill orchestrates the breach pipeline as an autonomous loop. After one-time initialization (recon + static scan), it continuously cycles through code analysis, deduplication, validation, and chain analysis. Each iteration intentionally varies its focus — different code areas, vulnerability classes, and attacker perspectives — exploiting the non-deterministic nature of AI analysis to maximize coverage over time.
 
-Each phase invokes a specialized skill. All skills remain independently invocable outside this orchestrator.
+The loop runs until the user stops it. Each phase invokes a specialized skill. All skills remain independently invocable outside this orchestrator.
 
 ## Findings Directory Detection
 
@@ -31,61 +31,97 @@ Create this silently — do not prompt the user for confirmation.
 
 ## Pipeline Execution
 
-### Phase A: Reconnaissance
+### Phase A: Initialization (runs once)
 
-Invoke `/breach:code-recon` on the target codebase to map the attack surface. This produces a prioritized map of entry points, trust boundaries, authentication mechanisms, and threat model context that feeds into the discovery phase.
+#### A.1 Findings Directory
 
-If the user has already run code-recon or provides recon output, skip this phase.
+Detect or create the findings directory as described above.
 
-### Phase B: Discovery (Parallel)
+#### A.2 Reconnaissance
 
-Run two discovery methods in parallel:
+Invoke `/breach:code-recon` on the target codebase to map the attack surface. This produces a prioritized map of entry points, trust boundaries, authentication mechanisms, and threat model context that feeds into the discovery loop.
 
-1. **`/breach:static-scan`** — Automated Semgrep + CodeQL scanning for deterministic pattern matching and dataflow-validated findings. Tool-generated findings include a `source` field in frontmatter ("semgrep" or "codeql") to distinguish them from manual findings.
-2. **`/breach:code-analysis`** — Claude's manual code review for logic flaws, design issues, and context-dependent vulnerabilities that tools miss. Manual findings have `source: "manual"` in frontmatter.
+If the user has already run code-recon or provides recon output, skip this step.
 
-Both skills operate in lifecycle mode and create findings in `findings/potential/`. Running both in parallel maximizes coverage: tools catch well-known patterns reliably and at scale, while manual review catches logic flaws and context-dependent issues that tools miss.
+#### A.3 Static Scan
 
-If static-scan tools are unavailable and the user declines installation, proceed with code-analysis only.
+Invoke `/breach:static-scan` for deterministic pattern matching and dataflow analysis. Static scanning is deterministic — identical results every run — so it executes once during initialization, not inside the loop.
 
-Each finding gets:
-- A sequentially assigned ID (scanning all existing findings across all stages)
-- A finding folder with `finding.md` (Vulnerable Code and Exploitability sections populated) and an empty `poc/` directory
-- Proper naming convention: `{SEVERITY}-{ID}-{VULN_TYPE}-{desc}/`
+Tool-generated findings include a `source` field in frontmatter ("semgrep" or "codeql"). Findings are created in `findings/potential/`.
 
-### Phase C: Validation and Deduplication
+If static-scan tools are unavailable and the user declines installation, skip this step.
 
-Process all findings in `findings/potential/` through the validation logic from `/breach:validate-finding`.
+#### A.4 Validate Static-Scan Findings
 
-**Deduplication**: Tool findings may duplicate manual findings (same vulnerability found by both Semgrep/CodeQL and Claude). Before full validation, deduplicate by checking if two findings in `findings/potential/` reference the same file:line range (allowing ±3 lines). When a duplicate pair is found, keep the finding with richer context (typically the manual finding with more detailed exploitability analysis) and reject the duplicate with `rejection_reason: "duplicate of {ID}"`.
+Process all findings from static-scan in `findings/potential/` through `/breach:validate-finding`:
 
-For each remaining finding, apply full validation:
+- **Validated findings**: Update finding.md with all sections (PoC, Impact, Remediation, References) and frontmatter fields (cvss_score, cvss_vector, confidence). Create `validation-result.md`. Verify PoC scripts in the `poc/` directory. Move to `findings/validated/`.
+- **Rejected findings**: Set `rejection_reason` in finding.md frontmatter, update stage to "rejected", move to `findings/rejected/`.
 
-- For each finding, apply the full 4-phase validation procedure (gates, verification, reproduction & PoC, assessment & dedup), triage criteria, CVSS scoring, and confidence assignment
-- **Validated findings**: Update finding.md with all sections (PoC, Impact, Remediation, References) and frontmatter fields (cvss_score, cvss_vector, confidence). Create `validation-result.md`. Verify PoC scripts in the `poc/` directory. Move the finding folder to `findings/validated/` (the orchestrator skips the `confirmed/` stage since it performs validation in a single pass).
-- **Rejected findings**: Set `rejection_reason` in finding.md frontmatter, update stage to "rejected", move the finding folder to `findings/rejected/`.
+### Phase B: Discovery Loop (repeats until user stops)
 
-### Phase C.5: Chain Analysis
+After initialization completes, begin the autonomous discovery loop. Repeat B.1 through B.5 continuously. Do not stop unless the user interrupts.
 
-After validation completes, invoke `/breach:chain-analysis` on all findings in `findings/validated/`. This identifies vulnerability chains where two or more findings combine for escalated impact. Chain findings are added to `findings/validated/` alongside individual findings.
+#### B.1 Code Analysis
+
+Invoke `/breach:code-analysis` to discover vulnerabilities through manual code review. Manual findings have `source: "manual"` in frontmatter.
+
+**Vary focus each iteration.** Before starting analysis, review what has already been found by scanning `findings/validated/` and `findings/rejected/`. Then intentionally shift focus using these strategies:
+
+- **Explore uncovered territory**: Target components, modules, and vulnerability classes not yet represented in existing findings.
+- **Rotate analysis approaches**: Alternate between broad sweeps (survey many components quickly), deep dives (exhaustive review of one component), variant hunting (find variations of validated findings), reverse trace from sinks (start from dangerous functions and trace inputs backwards), and adversarial review of rejections (re-examine rejected findings from a different angle).
+- **Rotate attacker perspectives**: Cycle through unauthenticated external attacker, authenticated regular user, privileged/admin user, and malicious insider.
+- **Explore different vulnerability classes**: Don't repeat the same OWASP categories — if prior iterations found injection flaws, focus on broken access control, cryptographic failures, or SSRF.
+
+The agent uses its conversation context and the findings directory state to decide what to focus on. No formal tracking structure is needed — just be intentionally different each pass.
+
+#### B.2 Deduplicate New Findings
+
+Before validation, deduplicate new findings in `findings/potential/` against all existing findings across all stages (`validated/`, `rejected/`, `reported/`, `verified/`).
+
+Check if two findings reference the same file:line range (allowing ±3 lines tolerance). When a duplicate is found, reject the new finding with `rejection_reason: "duplicate of {ID}"` and move it to `findings/rejected/`.
+
+Keep the finding with richer context (typically the one with more detailed exploitability analysis). If the new finding has better analysis than the existing one, keep the new finding and reject the existing one.
+
+#### B.3 Validate New Findings
+
+Process remaining (non-duplicate) findings in `findings/potential/` through `/breach:validate-finding`:
+
+- Apply the full 4-phase validation procedure (gates, verification, reproduction & PoC, assessment & dedup), triage criteria, CVSS scoring, and confidence assignment.
+- **Validated findings**: Update finding.md with all sections and frontmatter fields. Create `validation-result.md`. Verify PoC scripts. Move to `findings/validated/`.
+- **Rejected findings**: Set `rejection_reason`, update stage, move to `findings/rejected/`.
+
+#### B.4 Chain Analysis
+
+Invoke `/breach:chain-analysis` on all findings in `findings/validated/`. This identifies vulnerability chains where two or more findings combine for escalated impact. Chain findings are added to `findings/validated/`.
 
 If fewer than 2 validated findings exist, skip chain analysis.
 
-### Phase D: Pause for Human Verification
+#### B.5 Iteration Summary
 
-After validation completes, print a summary of results:
+Print a compact summary between iterations:
 
-**Validated Findings** (in `findings/validated/`):
+```
+── Iteration {N} Complete ──────────────────────────
+New findings this iteration:  {count} discovered, {validated} validated, {rejected} rejected
+Cumulative:                   {total_validated} validated, {total_rejected} rejected, {total_chains} chains
+Next iteration focus:         {brief description of planned focus shift}
+────────────────────────────────────────────────────
+```
 
-| ID | Severity | CVSS | Type | Component | Title | Confidence |
-|----|----------|------|------|-----------|-------|------------|
+Then immediately begin the next iteration at B.1. Do not pause or ask for confirmation.
 
-**Rejected Findings** (in `findings/rejected/`):
+### Phase C: Review & Reporting (after user stops the loop)
 
-| ID | Severity | Type | Component | Rejection Reason |
-|----|----------|------|-----------|------------------|
+When `/breach:hunt` is re-invoked after the user has stopped the loop:
 
-Then instruct the user:
+1. Check `findings/verified/` first. If verified findings exist:
+   - Invoke `/breach:report` to generate a complete security report covering all verified findings
+   - For each reported finding, update finding.md (`stage` to "reported", `last_moved` to current timestamp) and move the folder to `findings/reported/`
+2. After reporting, print a final summary and ask if the user wants to start a new discovery cycle on the same or different target.
+
+If no verified findings exist on re-invocation, check for findings in other stages:
+- If `validated/` has findings but `verified/` is empty: print the summary table of validated findings and instruct the user to verify before reporting:
 
 > **Human verification required before reporting.**
 >
@@ -99,20 +135,7 @@ Then instruct the user:
 >
 > When ready, re-run `/breach:hunt` to generate reports for verified findings.
 
-**Stop execution here.** Do not proceed to reporting without human verification.
-
-### Phase E: Reporting (on re-invocation)
-
-When `/breach:hunt` is invoked again after human verification:
-
-1. Check `findings/verified/` first. If verified findings exist:
-   - Invoke `/breach:report` to generate a complete security report covering all verified findings
-   - For each reported finding, update finding.md (`stage` to "reported", `last_moved` to current timestamp) and move the folder to `findings/reported/`
-2. After reporting, print a final summary and ask if the user wants to start a new discovery cycle on the same or different target.
-
-If no verified findings exist on re-invocation, check for findings in other stages:
-- If `potential/` has findings: resume from Phase C (validation)
-- If `validated/` has findings but `verified/` is empty: remind the user to verify findings before reporting
+- If `potential/` has findings: resume from validation (B.3)
 - If all stages are empty: start a fresh pipeline from Phase A
 
 ## Standalone Skills Note
@@ -141,9 +164,9 @@ If validation determines a different severity than initially assessed:
 ### Partial Pipeline Resume
 
 The orchestrator detects the current state by examining which stage directories contain findings:
-- Findings in `potential/` only → resume from Phase C
-- Findings in `validated/` → proceed to Phase D (pause for verification)
-- Findings in `verified/` → proceed to Phase E (reporting)
+- Findings in `potential/` only → resume from validation (B.3)
+- Findings in `validated/` → instruct user to verify before reporting
+- Findings in `verified/` → proceed to reporting (Phase C)
 - Mix of stages → process each stage appropriately (validate potential, report verified)
 
 ### Re-discovery with Existing Findings
@@ -151,11 +174,11 @@ The orchestrator detects the current state by examining which stage directories 
 When running a new discovery cycle while previous findings exist:
 - New finding IDs continue the global sequence (scan all stages for max ID)
 - Existing findings in any stage are not modified or re-processed
-- Only new findings in `potential/` are validated in Phase C
+- Only new findings in `potential/` are validated
 
 ### Tool-Manual Deduplication
 
-Tool findings may duplicate manual findings when both Semgrep/CodeQL and Claude identify the same vulnerability. During validation (Phase C), deduplicate by checking if two findings in `findings/potential/` reference the same file:line range (±3 lines tolerance). Keep the finding with richer context (typically the manual finding) and reject the duplicate with reason "duplicate of {ID}".
+Tool findings may duplicate manual findings when both Semgrep/CodeQL and Claude identify the same vulnerability. During validation, deduplicate by checking if two findings reference the same file:line range (±3 lines tolerance). Keep the finding with richer context (typically the manual finding) and reject the duplicate with reason "duplicate of {ID}".
 
 ## References
 
