@@ -8,7 +8,7 @@ This skill implements a three-phase hybrid audit methodology designed for expert
 
 ## Phase 1: Component-to-Vulnerability Mapping
 
-Begin by establishing a comprehensive map between application components and their applicable vulnerability classes. If recon output from a prior reconnaissance phase is available, use those identified entry points as the starting inventory. If no recon output exists, refer to the fallback clause at the end of this document.
+Begin by establishing a comprehensive map between application components and their applicable vulnerability classes. If code-recon output from a prior reconnaissance phase is available, use those identified entry points as the starting inventory. If no recon output exists, refer to the fallback clause at the end of this document.
 
 For every entry point, endpoint, and component identified, construct a mapping table with the following columns:
 
@@ -197,7 +197,7 @@ Operate identically to non-lifecycle behavior: output all findings to the conver
 
 ## Fallback: No Recon Output Available
 
-If this skill is invoked without output from a prior reconnaissance phase, perform rapid technology fingerprinting and entry point enumeration before beginning the hunt:
+If this skill is invoked without output from `/breach:code-recon`, perform rapid technology fingerprinting and entry point enumeration before beginning the hunt:
 
 1. **Technology Fingerprinting**: Identify the programming language(s), frameworks, libraries, database engines, and infrastructure components by examining package manifests, configuration files, import statements, and project structure.
 2. **Entry Point Enumeration**: Identify all routes, endpoints, API definitions, and external interfaces by examining route definitions, controller files, API schemas (OpenAPI, GraphQL SDL), and middleware configurations.

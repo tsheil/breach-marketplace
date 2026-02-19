@@ -141,5 +141,5 @@ If this skill is invoked without validated findings from a previous phase, do no
 
 Report generation is the final phase of the breach workflow.
 
-- **Lifecycle mode**: Reported findings have been moved to `findings/reported/`. The security report covers all human-verified findings. For additional targets or a new discovery cycle, run `/breach:hunt` or `/breach:recon` on a different scope.
-- **Standalone mode**: The validated findings have been transformed into a professional, submission-ready document. For additional targets, run `/breach:recon` on a different scope.
+- **Lifecycle mode**: Reported findings have been moved to `findings/reported/`. The security report covers all human-verified findings. For additional targets or a new discovery cycle, run `/breach:hunt` or `/breach:code-recon` on a different scope.
+- **Standalone mode**: The validated findings have been transformed into a professional, submission-ready document. For additional targets, run `/breach:code-recon` on a different scope.

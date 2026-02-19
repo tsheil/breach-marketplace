@@ -1,5 +1,5 @@
 ---
-description: "Hunt for vulnerabilities with a full breach pipeline. This skill should be used when the user asks to hunt for vulnerabilities, perform a security audit, run a comprehensive code security review, execute the full breach pipeline, manage the finding lifecycle, run recon through reporting, or perform systematic vulnerability discovery and validation. Orchestrates the complete workflow from reconnaissance through validated findings."
+description: "Hunt for vulnerabilities with a full breach pipeline. This skill should be used when the user asks to hunt for vulnerabilities, perform a security audit, run a comprehensive code security review, execute the full breach pipeline, manage the finding lifecycle, run code-recon through reporting, or perform systematic vulnerability discovery and validation. Orchestrates the complete workflow from reconnaissance through validated findings."
 ---
 
 # Hunt: Breach Pipeline Orchestrator
@@ -32,9 +32,9 @@ Create this silently — do not prompt the user for confirmation.
 
 ### Phase A: Reconnaissance
 
-Invoke `/breach:recon` on the target codebase to map the attack surface. This produces a prioritized map of entry points, trust boundaries, authentication mechanisms, and framework patterns that feeds into the discovery phase.
+Invoke `/breach:code-recon` on the target codebase to map the attack surface. This produces a prioritized map of entry points, trust boundaries, authentication mechanisms, and threat model context that feeds into the discovery phase.
 
-If the user has already run recon or provides recon output, skip this phase.
+If the user has already run code-recon or provides recon output, skip this phase.
 
 ### Phase B: Discovery (Parallel)
 
@@ -118,7 +118,7 @@ If no verified findings exist on re-invocation, check for findings in other stag
 
 All breach skills remain independently invocable:
 
-- `/breach:recon` — Attack surface mapping (standalone)
+- `/breach:code-recon` — Attack surface mapping (standalone)
 - `/breach:static-scan` — Automated Semgrep + CodeQL scanning (lifecycle-aware or standalone)
 - `/breach:code-analysis` — Manual vulnerability discovery (lifecycle-aware or standalone)
 - `/breach:validate-finding` — Finding validation with anti-hallucination gates, triager analysis, and PoC verification (lifecycle-aware or standalone)

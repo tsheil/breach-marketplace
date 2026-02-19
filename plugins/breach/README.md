@@ -27,30 +27,30 @@ ln -s /path/to/breach ~/.claude/plugins/breach
 ## Skills / Pipeline
 
 ```
-                        /breach:hunt (orchestrator)
-                ┌──────────┴──────────────────────────────────────────────────────┐
-                │                                                                  │
-                │           ┌── parallel ──┐                                       │
-/breach:recon --│--> /breach:static-scan   │--> /breach:validate-finding --> /breach:chain-analysis --> /breach:report
-                │    /breach:code-analysis  │                                       │
-                │           └──────────────┘                                       │
-                │                                       ┌─ human verify ───────────┘
-                │                                       ▼
-                │                                 findings/verified/
-                └──────────────────────────────────────────────────────────────────┘
+                             /breach:hunt (orchestrator)
+                ┌──────────────┴──────────────────────────────────────────────────────┐
+                │                                                                      │
+                │                ┌── parallel ──┐                                      │
+/breach:code-recon --│--> /breach:static-scan   │--> /breach:validate-finding --> /breach:chain-analysis --> /breach:report
+                │         /breach:code-analysis  │                                      │
+                │                └──────────────┘                                      │
+                │                                            ┌─ human verify ──────────┘
+                │                                            ▼
+                │                                      findings/verified/
+                └──────────────────────────────────────────────────────────────────────┘
 ```
 
 The orchestrator (`/breach:hunt`) runs the full pipeline and manages the finding lifecycle. All skills also work standalone. The `/breach:findings` skill provides the canonical reference for finding structure, naming, and lifecycle consumed by all other skills.
 
-### /breach:recon -- Attack Surface Mapping
+### /breach:code-recon -- Attack Surface Mapping
 
-Maps the target codebase attack surface: technology fingerprinting, entry point enumeration, trust boundary mapping, auth/authz inventory, data flow tracing, secrets audit, and framework-specific security patterns.
+Source code reconnaissance with threat modeling. Maps the target codebase attack surface: application context and threat model, technology fingerprinting, entry point enumeration, trust boundary mapping, auth/authz inventory, data flow tracing, secrets audit, and git history analysis.
 
-Produces a prioritized attack surface map consumed by the discovery phase.
+Supports two output modes: executive brief (quick scan) and full attack surface map (default). Produces a prioritized attack surface map consumed by the discovery phase.
 
 ### /breach:hunt -- Pipeline Orchestrator
 
-Orchestrates the complete breach pipeline: recon → static-scan + code-analysis (parallel) → validate → chain-analysis → report. Manages the finding lifecycle, creates the `findings/` directory structure, coordinates discovery and validation in batch, and pauses for human verification before reporting.
+Orchestrates the complete breach pipeline: code-recon → static-scan + code-analysis (parallel) → validate → chain-analysis → report. Manages the finding lifecycle, creates the `findings/` directory structure, coordinates discovery and validation in batch, and pauses for human verification before reporting.
 
 On re-invocation after human verification, generates reports for verified findings.
 
@@ -62,7 +62,7 @@ In lifecycle mode, creates finding folders in `findings/potential/` with `source
 
 ### /breach:code-analysis -- Vulnerability Discovery
 
-Systematic vulnerability discovery driven by the recon output. Component-to-vulnerability mapping, risk-prioritized hunting across three tiers, systematic input tracing, full OWASP Top 10 coverage, and vulnerability chaining analysis.
+Systematic vulnerability discovery driven by the code-recon output. Component-to-vulnerability mapping, risk-prioritized hunting across three tiers, systematic input tracing, full OWASP Top 10 coverage, and vulnerability chaining analysis.
 
 In lifecycle mode (when `findings/` directory exists), creates finding folders in `findings/potential/` with structured `finding.md` files. In standalone mode, outputs findings to conversation.
 
@@ -133,7 +133,6 @@ Each skill carries its own reference files under `skills/<skill>/references/`.
 
 | Skill | Path | Contents |
 |-------|------|----------|
-| recon | `skills/recon/references/` | Framework security patterns (Django, Express, Spring, Rails, Laravel, Next.js, Flask, FastAPI) |
 | static-scan | `skills/static-scan/references/` | Semgrep rulesets, CodeQL query suites, tool installation and setup |
 | code-analysis | `skills/code-analysis/references/` | OWASP Top 10 vulnerability reference files (A01 through A10) |
 | findings | `skills/findings/references/` | PoC standards, authoring requirements, format selection, anti-patterns |
