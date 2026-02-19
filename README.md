@@ -14,7 +14,6 @@ Install plugins:
 
 ```
 /plugin install breach@breach-marketplace
-/plugin install hackerone@breach-marketplace
 ```
 
 ## Available Plugins
@@ -30,18 +29,26 @@ Install plugins:
 
 Eight-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
 
-```
-                        /breach:hunt (orchestrator)
-                ┌──────────┴──────────────────────────────────────────────────────┐
-                │                                                                  │
-                │           ┌── parallel ──┐                                       │
-/breach:recon --│--> /breach:static-scan   │--> /breach:validate-finding --> /breach:chain-analysis --> /breach:report
-                │    /breach:code-analysis  │                                       │
-                │           └──────────────┘                                       │
-                │                                       ┌─ human verify ───────────┘
-                │                                       ▼
-                │                                 findings/verified/
-                └──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    hunt["/breach:hunt\n(orchestrator)"]
+
+    recon["/breach:recon"]
+    static["/breach:static-scan"]
+    code["/breach:code-analysis"]
+    validate["/breach:validate-finding"]
+    chain["/breach:chain-analysis"]
+    report["/breach:report"]
+    human{{"human verify"}}
+    verified[("findings/verified/")]
+
+    hunt -.->|manages| recon
+    recon --> static & code
+    static & code --> validate
+    validate --> chain
+    chain --> human
+    human --> verified
+    verified --> report
 ```
 
 | Skill | Purpose |
