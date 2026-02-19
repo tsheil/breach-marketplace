@@ -1,4 +1,5 @@
 ---
+name: breach-chain-analysis
 description: "Analyze validated findings for vulnerability chains. This skill should be used when the user asks to find vulnerability chains, analyze finding combinations, identify attack chains, check if findings combine for higher impact, escalate severity through chaining, perform chain analysis on validated findings, find multi-step attack paths, or determine if lower-severity findings combine into critical impact. Operates on validated findings to discover chains that elevate effective severity."
 ---
 

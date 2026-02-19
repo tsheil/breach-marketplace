@@ -1,4 +1,5 @@
 ---
+name: breach-report
 description: "Generate a professional security vulnerability report with CVSS scoring and bounty-ready presentation. This skill should be used when the user wants to write a security report, format vulnerability findings, create a bounty submission, calculate CVSS scores, prepare a report for HackerOne or Bugcrowd, turn raw vulnerability notes into a structured security assessment, or generate reports from verified findings in the finding lifecycle. This is the final phase of the breach pipeline. Enforces a hard gate on human-verified findings in lifecycle mode."
 ---
 

@@ -1,4 +1,5 @@
 ---
+name: breach-static-scan
 description: "Run static analysis tools on a codebase. This skill should be used when the user asks to run static analysis, scan with Semgrep, scan with CodeQL, run SAST tools, perform automated scanning, use automated security scanners, run deterministic pattern matching, perform dataflow analysis, use security scanning tools, or augment manual code review with tool-based analysis. Produces findings compatible with the breach finding lifecycle."
 ---
 

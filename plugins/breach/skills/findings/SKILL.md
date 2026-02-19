@@ -1,4 +1,5 @@
 ---
+name: breach-findings
 description: "Canonical reference for finding structure, naming, lifecycle, and PoC standards. This skill should be used when the user asks about finding format, naming conventions, finding directory structure, finding lifecycle stages, how findings are organized, finding.md template, PoC standards, finding ID assignment, severity naming, finding folder layout, status directories, or how findings move through the pipeline. It is the single source of truth for all finding-related definitions consumed by hunt, code-analysis, static-scan, validate-finding, chain-analysis, and report."
 ---
 

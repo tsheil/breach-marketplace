@@ -1,4 +1,5 @@
 ---
+name: breach-code-analysis
 description: "Systematically analyze code for security vulnerabilities. This skill should be used when the user asks to find vulnerabilities, perform code analysis for security issues, hunt for bugs in source code, check for injection flaws, look for authentication bypasses, trace user input to dangerous sinks, search for OWASP Top 10 issues, review code for security problems, or find exploitable weaknesses. Works best after attack surface reconnaissance but can operate standalone. This is the code analysis and vulnerability discovery phase in the breach pipeline."
 ---
 

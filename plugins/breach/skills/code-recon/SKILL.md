@@ -1,5 +1,5 @@
 ---
-name: code-recon
+name: breach-code-recon
 description: "Map the attack surface of a codebase for security review. Use when the user wants to start a security audit, perform source code reconnaissance, enumerate entry points and routes, fingerprint the technology stack, map trust boundaries, inventory authentication and authorization mechanisms, trace data flows, audit secrets and configuration, analyze git history for security-relevant changes, build a threat model for the target application, or scope an engagement before vulnerability hunting. This is the first stage of the breach pipeline."
 ---
 

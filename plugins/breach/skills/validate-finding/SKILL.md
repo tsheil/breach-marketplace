@@ -1,4 +1,5 @@
 ---
+name: breach-validate-finding
 description: "Validate security findings with anti-hallucination gates, triager analysis, and strict evidence. This skill should be used when the user wants to validate vulnerability findings, verify PoC exploits, prove a vulnerability is exploitable, verify findings are not false positives, confirm a vulnerability is real, triage security findings, check scope compliance, run deduplication, apply footgun detection, prepare evidence for a security report, process findings through the validation stage, or advance findings in the finding lifecycle. This is the validation phase following the code analysis phase in the breach pipeline."
 ---
 
