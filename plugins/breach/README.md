@@ -2,7 +2,7 @@
 
 Security vulnerability hunting toolkit for Claude Code.
 
-Seven-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
+Eight-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
 
 ## Requirements
 
@@ -31,7 +31,7 @@ ln -s /path/to/breach ~/.claude/plugins/breach
                 ┌──────────┴──────────────────────────────────────────────────────┐
                 │                                                                  │
                 │           ┌── parallel ──┐                                       │
-/breach:recon --│--> /breach:static-scan   │--> /breach:validate --> /breach:chain-analysis --> /breach:report
+/breach:recon --│--> /breach:static-scan   │--> /breach:validate-finding --> /breach:chain-analysis --> /breach:report
                 │    /breach:code-analysis  │                                       │
                 │           └──────────────┘                                       │
                 │                                       ┌─ human verify ───────────┘
@@ -40,7 +40,7 @@ ln -s /path/to/breach ~/.claude/plugins/breach
                 └──────────────────────────────────────────────────────────────────┘
 ```
 
-The orchestrator (`/breach:hunt`) runs the full pipeline and manages the finding lifecycle. All skills also work standalone.
+The orchestrator (`/breach:hunt`) runs the full pipeline and manages the finding lifecycle. All skills also work standalone. The `/breach:findings` skill provides the canonical reference for finding structure, naming, and lifecycle consumed by all other skills.
 
 ### /breach:recon -- Attack Surface Mapping
 
@@ -66,11 +66,15 @@ Systematic vulnerability discovery driven by the recon output. Component-to-vuln
 
 In lifecycle mode (when `findings/` directory exists), creates finding folders in `findings/potential/` with structured `finding.md` files. In standalone mode, outputs findings to conversation.
 
-### /breach:validate -- PoC Validation
+### /breach:findings -- Finding Structure & Lifecycle
 
-Validates each finding against a strict six-element evidence bar. Defines validation procedures, generates PoC exploit scripts from templates, applies triage criteria, and assigns confidence levels. Deduplicates tool-generated and manual findings that reference the same code location.
+Canonical reference for finding structure, naming conventions, lifecycle stages, PoC standards, and directory layout. Defines the finding.md template, YAML frontmatter fields, stage-by-stage population guide, ID assignment procedure, severity rename rules, file ownership table, and storage hygiene requirements. All other skills defer to this skill for finding-related definitions.
 
-In lifecycle mode, processes findings from `findings/potential/` and `findings/confirmed/`, moving validated findings to `findings/validated/` and rejected findings to `findings/rejected/`. In standalone mode, operates from conversation context.
+### /breach:validate-finding -- Finding Validation
+
+Validates each finding through a 4-phase, 12-step procedure with anti-hallucination gates, footgun detection, triager perspective analysis, 3x reproduction, deduplication, and mandatory devil's advocate severity challenge. Verifies existing PoCs against quality standards rather than generating new ones.
+
+In lifecycle mode, processes findings from `findings/potential/` and `findings/confirmed/`, creates `validation-result.md` artifacts, and moves validated findings to `findings/validated/` or rejected findings to `findings/rejected/`. In standalone mode, operates from conversation context.
 
 ### /breach:chain-analysis -- Vulnerability Chain Discovery
 
@@ -118,9 +122,10 @@ This ensures no finding reaches the final report without human review.
 - **Human-in-the-loop** -- AI discovers and validates, humans verify before reporting.
 - **Tool-augmented** -- combines deterministic tool analysis with AI-driven manual review for maximum coverage.
 - **Chain-aware** -- dedicated analysis identifies escalated impact from finding combinations.
-- **Suggested pipeline** -- each skill recommends the next stage but all seven work independently.
+- **Suggested pipeline** -- each skill recommends the next stage but all eight work independently.
 - **OWASP Top 10 focused** -- hunting methodology maps directly to the OWASP Top 10 2021.
-- **Template-based PoCs** -- validation generates exploit scripts from reusable templates.
+- **Standardized PoCs** -- findings skill defines PoC standards; validation verifies compliance.
+- **Anti-hallucination** -- validation includes hard gates that reject fabricated file paths, functions, and data flows.
 
 ## Reference Material
 
@@ -131,8 +136,9 @@ Each skill carries its own reference files under `skills/<skill>/references/`.
 | recon | `skills/recon/references/` | Framework security patterns (Django, Express, Spring, Rails, Laravel, Next.js, Flask, FastAPI) |
 | static-scan | `skills/static-scan/references/` | Semgrep rulesets, CodeQL query suites, tool installation and setup |
 | code-analysis | `skills/code-analysis/references/` | OWASP Top 10 vulnerability reference files (A01 through A10) |
-| hunt | `skills/hunt/references/` | Finding template, lifecycle stage definitions and transition rules |
-| validate | `skills/validate/references/` | PoC templates (HTTP requests, curl patterns, data extraction) |
+| findings | `skills/findings/references/` | PoC standards, authoring requirements, format selection, anti-patterns |
+| hunt | `skills/hunt/references/` | Security review principles (mindset, evidence, methodology, severity calibration) |
+| validate-finding | `skills/validate-finding/references/` | Triager analysis reference (triager perspective, N/A patterns, AI slop detection) |
 | chain-analysis | `skills/chain-analysis/references/` | Vulnerability chain pattern catalog |
 | report | `skills/report/references/` | Report template, CVSS v3.1 scoring guide, bounty writing wisdom |
 

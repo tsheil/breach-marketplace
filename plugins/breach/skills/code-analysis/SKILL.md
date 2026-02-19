@@ -178,7 +178,7 @@ For each vulnerability discovered, create a finding folder in `findings/potentia
    - `desc`: Kebab-case description, ~40 characters max
    - Example: `MED-001-XSS-missing-sanitization/`
 
-3. **Create `finding.md`**: Use the finding template from `finding-template.md` (in the hunt skill's references directory). Populate:
+3. **Create `finding.md`**: Use the finding template defined in `/breach:findings`. Populate:
    - All frontmatter fields (id, title, severity, vuln_type, affected_component, stage as "potential", created_at, last_moved)
    - **Vulnerable Code** section: Code snippet with file path, line numbers, surrounding context
    - **Exploitability** section: Full exploit path from entry point through data flow to sink
@@ -209,5 +209,5 @@ Proceed to Phase 1 after completing this rapid assessment.
 
 After completing code analysis and documenting all findings:
 
-- **Lifecycle mode**: Findings have been written to `findings/potential/`. Proceed to validation with `/breach:validate` to generate proof-of-concept exploits and move validated findings forward. Alternatively, run the full pipeline with `/breach:hunt`.
-- **Standalone mode**: Findings have been output to conversation. Run `/breach:validate` to generate proof-of-concept exploits for your findings.
+- **Lifecycle mode**: Findings have been written to `findings/potential/`. Proceed to validation with `/breach:validate-finding` to verify proof-of-concept exploits and move validated findings forward. Alternatively, run the full pipeline with `/breach:hunt`.
+- **Standalone mode**: Findings have been output to conversation. Run `/breach:validate-finding` to validate and verify proof-of-concept exploits for your findings.

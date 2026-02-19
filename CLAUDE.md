@@ -1,4 +1,7 @@
-When modifying skills:
+## Skill Development
+Use the skill-creator skill when creating new skills and updating existing skills.
+
+## When modifying skills:
 
 1. Update `plugins/breach/README.md` (plugin README)
 2. Update `README.md` (marketplace README)

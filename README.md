@@ -20,18 +20,18 @@ Install the breach plugin:
 
 | Plugin | Description | Version |
 |--------|-------------|---------|
-| [breach](plugins/breach/) | Security vulnerability hunting toolkit | 1.2.0 |
+| [breach](plugins/breach/) | Security vulnerability hunting toolkit | 1.3.1 |
 
 ## breach
 
-Seven-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
+Eight-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
 
 ```
                         /breach:hunt (orchestrator)
                 ┌──────────┴──────────────────────────────────────────────────────┐
                 │                                                                  │
                 │           ┌── parallel ──┐                                       │
-/breach:recon --│--> /breach:static-scan   │--> /breach:validate --> /breach:chain-analysis --> /breach:report
+/breach:recon --│--> /breach:static-scan   │--> /breach:validate-finding --> /breach:chain-analysis --> /breach:report
                 │    /breach:code-analysis  │                                       │
                 │           └──────────────┘                                       │
                 │                                       ┌─ human verify ───────────┘
@@ -46,7 +46,8 @@ Seven-skill pipeline for systematic source code security review with a filesyste
 | `/breach:hunt` | Pipeline orchestrator -- runs recon → static-scan + code-analysis (parallel) → validate → chain-analysis, manages finding lifecycle, pauses for human verification before reporting |
 | `/breach:static-scan` | Automated scanning -- Semgrep pattern matching + CodeQL dataflow analysis, deterministic vulnerability detection, tool-sourced findings |
 | `/breach:code-analysis` | Vulnerability discovery -- OWASP Top 10 coverage, risk-prioritized analysis, vulnerability chaining, lifecycle-aware output |
-| `/breach:validate` | PoC validation -- six-element evidence bar, exploit script generation, triage and confidence levels, deduplication, lifecycle-aware processing |
+| `/breach:findings` | Finding standards -- canonical reference for finding structure, naming, lifecycle stages, PoC standards, and directory layout |
+| `/breach:validate-finding` | Finding validation -- 4-phase 12-step procedure with anti-hallucination gates, footgun detection, triager analysis, 3x reproduction, deduplication |
 | `/breach:chain-analysis` | Chain discovery -- analyzes validated finding pairs for escalated impact, known chain patterns, adjacency analysis, chain severity calculation |
 | `/breach:report` | Report generation -- CVSS v3.1 scoring, reproduction steps, bounty-optimized presentation, hard gate on human-verified findings |
 

@@ -1,7 +1,7 @@
 {
   "name": "breach",
-  "version": "1.2.0",
-  "description": "Security vulnerability hunting toolkit. Seven-skill pipeline with finding lifecycle for expert bug hunters: attack surface reconnaissance, automated static scanning (Semgrep + CodeQL), systematic code analysis, PoC validation with triage, vulnerability chain discovery, human-verified reporting, and pipeline orchestration.",
+  "version": "1.3.1",
+  "description": "Security vulnerability hunting toolkit. Eight-skill pipeline with finding lifecycle for expert bug hunters: attack surface reconnaissance, automated static scanning (Semgrep + CodeQL), systematic code analysis, canonical finding structure and PoC standards, finding validation with anti-hallucination gates and triager analysis, vulnerability chain discovery, human-verified reporting, and pipeline orchestration.",
   "author": { "name": "Thomas Sheil" },
   "license": "Apache-2.0"
 }

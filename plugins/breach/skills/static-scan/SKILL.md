@@ -174,7 +174,7 @@ For each deduplicated finding, create a finding folder in `findings/potential/`:
    - `desc`: Kebab-case description derived from the rule message, ~40 characters max
    - Example: `HIGH-004-SQLI-raw-query-user-input/`
 
-3. **Create `finding.md`**: Use the finding template from `finding-template.md` (in the hunt skill's references directory). Populate:
+3. **Create `finding.md`**: Use the finding template defined in `/breach:findings`. Populate:
    - All standard frontmatter fields (`id`, `title`, `severity`, `vuln_type`, `affected_component`, `stage` as "potential", `created_at`, `last_moved`)
    - **`source`**: Set to `"semgrep"` or `"codeql"` to distinguish from manual findings
    - **Vulnerable Code** section: Code snippet from the tool output with file path, line numbers, and surrounding context
@@ -206,5 +206,5 @@ No filesystem changes.
 
 After completing static scanning and documenting all findings:
 
-- **Lifecycle mode**: Findings have been written to `findings/potential/`. These will be processed alongside manual findings from `/breach:code-analysis` during the validation phase with `/breach:validate`. Run the full pipeline with `/breach:hunt` or proceed directly to validation.
-- **Standalone mode**: Findings have been output to conversation. Run `/breach:validate` to validate findings or `/breach:code-analysis` for complementary manual review.
+- **Lifecycle mode**: Findings have been written to `findings/potential/`. These will be processed alongside manual findings from `/breach:code-analysis` during the validation phase with `/breach:validate-finding`. Run the full pipeline with `/breach:hunt` or proceed directly to validation.
+- **Standalone mode**: Findings have been output to conversation. Run `/breach:validate-finding` to validate findings or `/breach:code-analysis` for complementary manual review.

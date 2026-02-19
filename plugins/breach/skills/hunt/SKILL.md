@@ -54,14 +54,14 @@ Each finding gets:
 
 ### Phase C: Validation and Deduplication
 
-Process all findings in `findings/potential/` through the validation logic from `/breach:validate`.
+Process all findings in `findings/potential/` through the validation logic from `/breach:validate-finding`.
 
 **Deduplication**: Tool findings may duplicate manual findings (same vulnerability found by both Semgrep/CodeQL and Claude). Before full validation, deduplicate by checking if two findings in `findings/potential/` reference the same file:line range (allowing ±3 lines). When a duplicate pair is found, keep the finding with richer context (typically the manual finding with more detailed exploitability analysis) and reject the duplicate with `rejection_reason: "duplicate of {ID}"`.
 
 For each remaining finding, apply full validation:
 
-- For each finding, apply the full 6-element evidence bar, triage criteria, PoC generation, CVSS scoring, and confidence assignment
-- **Validated findings**: Update finding.md with all sections (PoC, Impact, Remediation, References) and frontmatter fields (cvss_score, cvss_vector, confidence). Write PoC scripts to the `poc/` directory. Move the finding folder to `findings/validated/` (the orchestrator skips the `confirmed/` stage since it performs PoC generation and validation in a single pass).
+- For each finding, apply the full 4-phase validation procedure (gates, verification, reproduction & PoC, assessment & dedup), triage criteria, CVSS scoring, and confidence assignment
+- **Validated findings**: Update finding.md with all sections (PoC, Impact, Remediation, References) and frontmatter fields (cvss_score, cvss_vector, confidence). Create `validation-result.md`. Verify PoC scripts in the `poc/` directory. Move the finding folder to `findings/validated/` (the orchestrator skips the `confirmed/` stage since it performs validation in a single pass).
 - **Rejected findings**: Set `rejection_reason` in finding.md frontmatter, update stage to "rejected", move the finding folder to `findings/rejected/`.
 
 ### Phase C.5: Chain Analysis
@@ -121,7 +121,8 @@ All breach skills remain independently invocable:
 - `/breach:recon` — Attack surface mapping (standalone)
 - `/breach:static-scan` — Automated Semgrep + CodeQL scanning (lifecycle-aware or standalone)
 - `/breach:code-analysis` — Manual vulnerability discovery (lifecycle-aware or standalone)
-- `/breach:validate` — Finding validation with PoC (lifecycle-aware or standalone)
+- `/breach:validate-finding` — Finding validation with anti-hallucination gates, triager analysis, and PoC verification (lifecycle-aware or standalone)
+- `/breach:findings` — Canonical reference for finding structure, naming, lifecycle, and PoC standards
 - `/breach:chain-analysis` — Vulnerability chain discovery (lifecycle-aware or standalone)
 - `/breach:report` — Report generation (lifecycle gate in lifecycle mode, no gate in standalone)
 
@@ -157,5 +158,5 @@ Tool findings may duplicate manual findings when both Semgrep/CodeQL and Claude 
 
 ## References
 
-- `finding-template.md` — Canonical finding.md template with stage-by-stage population guide
-- `lifecycle-stages.md` — Stage definitions, transition rules, ID assignment, naming conventions
+- `security-review-principles.md` — Mindset, evidence standards, methodology, severity calibration, and exclusion criteria
+- `/breach:findings` — Canonical finding.md template, lifecycle stages, naming conventions, ID assignment, and PoC standards
