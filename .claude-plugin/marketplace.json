@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "breach",
-      "description": "Security vulnerability hunting toolkit. Five-skill pipeline with finding lifecycle for expert bug hunters: attack surface reconnaissance, systematic code analysis, PoC validation with triage, human-verified reporting, and pipeline orchestration.",
-      "version": "1.1.0",
+      "description": "Security vulnerability hunting toolkit. Seven-skill pipeline with finding lifecycle for expert bug hunters: attack surface reconnaissance, automated static scanning (Semgrep + CodeQL), systematic code analysis, PoC validation with triage, vulnerability chain discovery, human-verified reporting, and pipeline orchestration.",
+      "version": "1.2.0",
       "author": {
         "name": "Thomas Sheil"
       },

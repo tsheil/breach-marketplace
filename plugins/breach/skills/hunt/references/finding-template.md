@@ -13,9 +13,11 @@ cvss_score:               # null until validated
 cvss_vector: ""           # CVSS:3.1/AV:_/AC:_/PR:_/UI:_/S:_/C:_/I:_/A:_
 cwe: ""                   # CWE-XXX
 stage: "potential"        # potential | confirmed | validated | verified | reported | rejected
-vuln_type: ""             # Freeform shorthand (XSS, SQLI, IDOR, RCE, SSRF, etc.)
+vuln_type: ""             # Freeform shorthand (XSS, SQLI, IDOR, RCE, SSRF, CHAIN, etc.)
 affected_component: ""    # file:line format
 confidence: ""            # Confirmed | High | Medium | Low (empty until validated)
+source: ""                # "manual" | "semgrep" | "codeql" (default: "manual")
+chain_components: []      # List of finding IDs this chain comprises (empty for non-chain findings)
 created_at: ""            # ISO 8601
 last_moved: ""            # ISO 8601
 rejection_reason: ""      # Only when rejected
@@ -49,10 +51,10 @@ reviewer_notes: ""        # Human reviewer free text
 
 ## Stage-by-Stage Population Guide
 
-### potential (Code Analysis phase)
+### potential (Code Analysis / Static Scan phase)
 
 Populate these fields and sections:
-- **Frontmatter**: `id`, `title`, `severity`, `cwe`, `stage` ("potential"), `vuln_type`, `affected_component`, `created_at`, `last_moved`
+- **Frontmatter**: `id`, `title`, `severity`, `cwe`, `stage` ("potential"), `vuln_type`, `affected_component`, `source` ("manual", "semgrep", or "codeql"), `created_at`, `last_moved`
 - **Vulnerable Code**: Full code snippet with file path, line numbers, and surrounding context
 - **Exploitability**: Entry point identification, data flow trace, initial controls assessment
 - All other sections: Leave present with placeholder comments
@@ -66,7 +68,7 @@ Add to the `potential` content:
 ### validated (Full evidence bar met)
 
 Complete all remaining content:
-- **Frontmatter**: Update `stage` to "validated", `last_moved`, `cvss_score`, `cvss_vector`, `confidence`
+- **Frontmatter**: Update `stage` to "validated", `last_moved`, `cvss_score`, `cvss_vector`, `confidence`. For chain findings: set `vuln_type` to "CHAIN", populate `chain_components` with component finding IDs
 - **Exploitability**: Complete with full controls assessment and bypass method
 - **Proof of Concept**: Refined and fully commented PoC
 - **Impact**: Business impact with worst-case outcome, affected data, blast radius

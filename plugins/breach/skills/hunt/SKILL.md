@@ -36,22 +36,39 @@ Invoke `/breach:recon` on the target codebase to map the attack surface. This pr
 
 If the user has already run recon or provides recon output, skip this phase.
 
-### Phase B: Discovery
+### Phase B: Discovery (Parallel)
 
-Invoke `/breach:code-analysis` to perform systematic vulnerability discovery. The code-analysis skill operates in lifecycle-aware mode (since the `findings/` directory exists) and creates finding folders in `findings/potential/` for each discovered vulnerability.
+Run two discovery methods in parallel:
+
+1. **`/breach:static-scan`** — Automated Semgrep + CodeQL scanning for deterministic pattern matching and dataflow-validated findings. Tool-generated findings include a `source` field in frontmatter ("semgrep" or "codeql") to distinguish them from manual findings.
+2. **`/breach:code-analysis`** — Claude's manual code review for logic flaws, design issues, and context-dependent vulnerabilities that tools miss. Manual findings have `source: "manual"` in frontmatter.
+
+Both skills operate in lifecycle mode and create findings in `findings/potential/`. Running both in parallel maximizes coverage: tools catch well-known patterns reliably and at scale, while manual review catches logic flaws and context-dependent issues that tools miss.
+
+If static-scan tools are unavailable and the user declines installation, proceed with code-analysis only.
 
 Each finding gets:
 - A sequentially assigned ID (scanning all existing findings across all stages)
 - A finding folder with `finding.md` (Vulnerable Code and Exploitability sections populated) and an empty `poc/` directory
 - Proper naming convention: `{SEVERITY}-{ID}-{VULN_TYPE}-{desc}/`
 
-### Phase C: Validation
+### Phase C: Validation and Deduplication
 
-Process all findings in `findings/potential/` through the validation logic from `/breach:validate`:
+Process all findings in `findings/potential/` through the validation logic from `/breach:validate`.
+
+**Deduplication**: Tool findings may duplicate manual findings (same vulnerability found by both Semgrep/CodeQL and Claude). Before full validation, deduplicate by checking if two findings in `findings/potential/` reference the same file:line range (allowing ±3 lines). When a duplicate pair is found, keep the finding with richer context (typically the manual finding with more detailed exploitability analysis) and reject the duplicate with `rejection_reason: "duplicate of {ID}"`.
+
+For each remaining finding, apply full validation:
 
 - For each finding, apply the full 6-element evidence bar, triage criteria, PoC generation, CVSS scoring, and confidence assignment
 - **Validated findings**: Update finding.md with all sections (PoC, Impact, Remediation, References) and frontmatter fields (cvss_score, cvss_vector, confidence). Write PoC scripts to the `poc/` directory. Move the finding folder to `findings/validated/` (the orchestrator skips the `confirmed/` stage since it performs PoC generation and validation in a single pass).
 - **Rejected findings**: Set `rejection_reason` in finding.md frontmatter, update stage to "rejected", move the finding folder to `findings/rejected/`.
+
+### Phase C.5: Chain Analysis
+
+After validation completes, invoke `/breach:chain-analysis` on all findings in `findings/validated/`. This identifies vulnerability chains where two or more findings combine for escalated impact. Chain findings are added to `findings/validated/` alongside individual findings.
+
+If fewer than 2 validated findings exist, skip chain analysis.
 
 ### Phase D: Pause for Human Verification
 
@@ -102,8 +119,10 @@ If no verified findings exist on re-invocation, check for findings in other stag
 All breach skills remain independently invocable:
 
 - `/breach:recon` — Attack surface mapping (standalone)
-- `/breach:code-analysis` — Vulnerability discovery (lifecycle-aware or standalone)
+- `/breach:static-scan` — Automated Semgrep + CodeQL scanning (lifecycle-aware or standalone)
+- `/breach:code-analysis` — Manual vulnerability discovery (lifecycle-aware or standalone)
 - `/breach:validate` — Finding validation with PoC (lifecycle-aware or standalone)
+- `/breach:chain-analysis` — Vulnerability chain discovery (lifecycle-aware or standalone)
 - `/breach:report` — Report generation (lifecycle gate in lifecycle mode, no gate in standalone)
 
 The orchestrator coordinates these skills but does not replace them.
@@ -131,6 +150,10 @@ When running a new discovery cycle while previous findings exist:
 - New finding IDs continue the global sequence (scan all stages for max ID)
 - Existing findings in any stage are not modified or re-processed
 - Only new findings in `potential/` are validated in Phase C
+
+### Tool-Manual Deduplication
+
+Tool findings may duplicate manual findings when both Semgrep/CodeQL and Claude identify the same vulnerability. During validation (Phase C), deduplicate by checking if two findings in `findings/potential/` reference the same file:line range (±3 lines tolerance). Keep the finding with richer context (typically the manual finding) and reject the duplicate with reason "duplicate of {ID}".
 
 ## References
 
