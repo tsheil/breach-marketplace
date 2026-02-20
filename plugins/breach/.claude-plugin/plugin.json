@@ -1,6 +1,6 @@
 {
   "name": "breach",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Security vulnerability hunting toolkit. Ten-skill pipeline with autonomous looping discovery for expert bug hunters: source code reconnaissance with threat modeling and git history analysis, custom Semgrep/CodeQL rule generation tailored to the target codebase, automated static scanning (Semgrep + CodeQL), autonomous looping code analysis with coverage tracking and auto-shift on diminishing returns, variant analysis from findings/CVEs/disclosures with automated rule generation, canonical finding structure and PoC standards, finding validation with anti-hallucination gates and triager analysis, vulnerability chain discovery, human-verified reporting, and pipeline orchestration.",
   "author": { "name": "Thomas Sheil" },
   "license": "Apache-2.0"

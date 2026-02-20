@@ -180,7 +180,7 @@ For each remaining result, perform quick validation:
 
 For each confirmed variant, create a finding in `findings/potential/`:
 1. Follow standard ID assignment (scan all stages, increment highest ID)
-2. Name format: `{SEVERITY}-{VULN_TYPE}-{NNN}-{desc}/`
+2. Name format: `{SEVERITY}-{NNN}-{VULN_TYPE}-{desc}/`
 3. Create `finding.md` with:
    - Standard frontmatter fields
    - `source: "variant-analysis"`
