@@ -69,7 +69,19 @@ These are the most frequent reasons triagers mark submissions as Not Applicable.
 
 ## AI Slop Detection
 
-Triagers are increasingly trained to spot AI-generated reports. These patterns trigger immediate skepticism:
+Triagers are increasingly trained to spot AI-generated reports. These patterns trigger immediate skepticism and often result in automatic deprioritization or closure:
+
+### Verbosity and Padding Signals
+
+| Red Flag | What Triagers See |
+|----------|------------------|
+| Excessive vulnerability type explanations | Three paragraphs explaining what SQL injection is — triagers know |
+| Unnecessary background context | "Web applications often store user data..." before the actual finding |
+| Padded impact sections | Repeating the same impact in different words across multiple paragraphs |
+| Verbose reproduction steps | 15 steps when 5 would suffice, with explanatory paragraphs between steps |
+| Redundant logging output | Full HTTP response bodies when only one header or field matters |
+
+### Technical Credibility Signals
 
 | Red Flag | What Triagers See |
 |----------|------------------|
@@ -79,9 +91,33 @@ Triagers are increasingly trained to spot AI-generated reports. These patterns t
 | No actual PoC, just "steps to reproduce" | Steps describe how to navigate to a page, not how to exploit |
 | Copied-and-pasted remediation advice | "Use parameterized queries" without showing the specific fix |
 | Findings that don't match the target | Generic web vulnerabilities reported against an API-only service |
-| Excessive formality and hedging | "It is recommended that..." instead of direct statements |
 | Multiple findings that are actually one | Same root cause split into separate reports for bounty multiplication |
-| Perfect grammar but zero technical depth | Well-written but says nothing specific |
 | Claims without evidence | "We confirmed that..." but no screenshot, no response, no proof |
 
-**Counter-measure**: Every section of a finding must reference specific file paths, line numbers, function names, and real output from the target. Generic language is the enemy of credibility.
+### Speculation and Assumption Signals
+
+| Red Flag | What Triagers See |
+|----------|------------------|
+| Speculative impact chains | "This XSS could be combined with CSRF to achieve account takeover" without demonstrating the chain |
+| Hedging language | "Could potentially lead to," "might allow an attacker to," "it is possible that" |
+| Theoretical maximum impact | Claims of "full database compromise" when the PoC reads one record |
+| Assumed misconfigurations | PoC only works with debug mode or non-default settings, presented as production-exploitable |
+| Unvalidated attack vectors | Describing attacks that were not actually tested against the target |
+
+### Style and Tone Signals
+
+| Red Flag | What Triagers See |
+|----------|------------------|
+| Excessive formality and hedging | "It is recommended that..." instead of direct statements |
+| Perfect grammar but zero technical depth | Well-written but says nothing specific |
+| Uniform sentence structure | Every paragraph follows the same pattern — a sign of LLM generation |
+| Gratuitous security jargon | Using terms like "attack surface" and "threat vector" without adding information |
+
+### Counter-Measures
+
+Every section of a finding must reference specific file paths, line numbers, function names, and real output from the target. Generic language is the enemy of credibility.
+
+- **Conciseness test**: If removing a sentence loses no information, the sentence is padding. Remove it.
+- **Evidence test**: Every claim must point to a PoC output, a code snippet, or a response capture. No claim without a reference.
+- **Speculation test**: Replace every "could" and "might" with "does" or "the PoC demonstrates." If the sentence becomes false, it's speculation — either gather evidence or remove the claim.
+- **Production config test**: Verify the PoC runs against the application's default configuration. If it requires non-default settings, document exactly why those settings are common in real deployments.

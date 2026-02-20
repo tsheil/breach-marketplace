@@ -20,7 +20,12 @@ Use this template for every individual finding in the report. Every field is req
 
 ### Summary
 
-[2-3 sentences maximum. Sentence 1: what an attacker can do and the impact. Sentence 2: what access or conditions are required. Sentence 3: scope of affected users or data. This paragraph determines whether the triager takes the finding seriously — write it as if the reader will not read anything else.]
+[2-3 sentences maximum. No exceptions — exceeding three sentences triggers triager suspicion of AI padding.
+Sentence 1: what an attacker can do and the impact (demonstrated, not theoretical).
+Sentence 2: what access or conditions are required.
+Sentence 3: scope of affected users or data.
+This paragraph determines whether the triager takes the finding seriously — write it as if the reader will not read anything else.
+Do not explain the vulnerability class — the triager knows what IDOR/XSS/SQLi is. State the specific instance and its specific impact.]
 
 ### Affected Component
 
@@ -54,6 +59,11 @@ Highlight or comment the specific vulnerable line(s).]
 > "Navigate to https://target.example.com/dashboard". Do not write "use a valid session token" —
 > write "Include the header: Authorization: Bearer [token from step 1]".
 > Include expected output at each step so the reproducer knows they are on track.
+>
+> **Conciseness rule**: Each step is one action. No explanatory paragraphs between steps. No verbose
+> logging output unless a specific log line is the evidence. Strip any step that does not directly
+> contribute to triggering or observing the vulnerability. If a triager cannot reproduce in under
+> five minutes, the steps are too long or too vague.
 
 ### Proof of Concept
 
@@ -82,6 +92,12 @@ all headers, cookies, and payloads.]
 
 > Write in concrete, quantifiable terms. "All 2.3 million user records including email addresses
 > and hashed passwords" is stronger than "user data." Reference the data model if known.
+>
+> **Anti-speculation rule**: Every impact claim must be backed by demonstrated evidence from the
+> PoC or reproduction steps. Do not use "could potentially," "might allow," or "it is possible that."
+> If the PoC shows read access to one record, the demonstrated impact is single-record access —
+> state that, then separately note if enumeration to all records is theoretically possible (and why).
+> Label theoretical impact explicitly: "Demonstrated: [X]. Theoretical maximum: [Y]."
 
 ### Remediation
 
@@ -117,3 +133,4 @@ Note any potential side effects of the fix that developers should test for.]
 - If a section cannot be filled (e.g., no PoC is possible for a design flaw), explain why in that section rather than leaving it blank.
 - Maintain consistent formatting across all findings in the report.
 - The finding must be self-contained — a reader should understand, reproduce, and fix the issue using only this finding's content.
+- **AI quality check**: After generating, re-read every section and apply the conciseness test (remove any sentence that adds no information), the evidence test (every claim points to PoC output or code), and the speculation test (replace "could"/"might" with "does" — if the sentence becomes false, it is speculation). See the AI Report Quality Gates in the report skill for the full checklist.

@@ -72,3 +72,21 @@ When and how you submit affects outcomes as much as what you submit.
 - **For chains, submit the chain first.** Write the comprehensive chain report showing the full attack path and combined impact. Reference individual components within the chain. If you submit individual low-severity components first, they get closed as low-impact, and arguing for a chain upgrade later is difficult.
 - **Respond to triager questions within 24 hours.** Responsiveness signals professionalism and keeps the report moving through the triage pipeline. Delayed responses lead to stale reports that get deprioritized.
 - **Do not argue severity publicly.** If you disagree with a severity assessment, present your case factually in the report comments with additional evidence. Do not escalate to social media or public channels — this burns bridges and can result in program bans.
+
+## AI-Assisted Report Writing
+
+AI tools can accelerate report writing, but they introduce specific failure modes that triagers recognize and penalize. Human oversight is mandatory — AI should draft, not decide.
+
+### Six Rules for AI-Assisted Reports
+
+**1. Cut the verbosity.** LLMs pad output. Triagers process dozens of reports daily. Including lengthy descriptions that could be shortened or omitted increases triage time and signals an AI-generated low-effort submission. Vulnerability type explanations get two sentences maximum — the triager knows what IDOR is. If a section can be cut without losing information, cut it.
+
+**2. Validate every PoC independently.** Never assume an AI tool has validated the vulnerability you're about to report. A functioning PoC isn't necessarily valid — it must demonstrate exploitability in the target's intended production configuration, not a test environment with debug mode enabled or security features disabled. Run the PoC yourself. Watch it work. Verify the output matches your claims.
+
+**3. Verify reproduction steps from scratch.** Applications vary significantly. AI-generated steps often include unnecessary navigation, verbose logging, and assumptions about the environment. Before submission, execute the steps independently from a clean state. Strip anything that doesn't directly contribute to triggering or observing the vulnerability.
+
+**4. Know the platform rules.** AI tools lack context about specific platform requirements, scope definitions, and community guidelines. They may recommend actions that violate platform rules — hosting files externally when prohibited, testing production when only staging is in scope, or disclosing details that breach responsible disclosure policies. Feed your AI tool the program rules before generating the report. Review the output against those rules before submitting.
+
+**5. Eliminate speculation.** Triagers cannot work with assumptions. "Could potentially lead to" is not evidence. "The PoC demonstrates extraction of user records" is evidence. Every impact claim must be backed by what the PoC actually shows. If you cannot prove a vulnerability's validity with concrete evidence, gather more information before reporting — do not speculate about theoretical impact and hope the triager fills in the gaps.
+
+**6. Never use AI for triager responses.** When a triager asks for clarification or additional evidence, respond manually. AI-generated responses to feedback requests frequently provide incorrect information, contradict the original report, or fail to address the specific question asked. The triager is evaluating your expertise, not your AI tool's. Respond in your own words with specific technical details from your own testing.

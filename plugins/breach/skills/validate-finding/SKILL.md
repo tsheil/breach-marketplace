@@ -191,20 +191,31 @@ If a PoC was provided or generated, verify all of these:
 2. **Runs against real code**: The PoC must target the actual vulnerable code path, not a mock server or contrived environment.
 3. **Captures real output**: The PoC must show actual application responses, not hardcoded or fabricated output.
 4. **Completes in <5 minutes**: A PoC that takes longer than 5 minutes is not practical for triager reproduction.
+5. **Production configuration**: The PoC must demonstrate exploitability in the target's intended production configuration — not a debug, development, or intentionally misconfigured environment. Verify:
+   - The application is not running in debug/development mode (check for `DEBUG=true`, `NODE_ENV=development`, `FLASK_DEBUG=1`, `RAILS_ENV=development`, or equivalent).
+   - Default security features are not disabled (CSRF protection, authentication middleware, security headers, rate limiting). If the PoC depends on a disabled default, it targets a footgun, not a production vulnerability.
+   - No non-standard configuration flags or environment variables are required. If non-default settings are needed, document them explicitly and provide evidence that real deployments commonly use them (installer defaults, official documentation recommendations, survey data).
+   - If production-config verification is impossible (source-code-only analysis), document the assumption and flag for runtime confirmation.
 
-**HARD REJECT the PoC** (not necessarily the finding) if any check fails. The finding can still proceed if other evidence is strong enough, but confidence is downgraded.
+**HARD REJECT the PoC** (not necessarily the finding) if any of checks 1-4 fail. For check 5 failures, REJECT the PoC and downgrade finding confidence — the finding can proceed only if the non-default configuration is demonstrated to be common in real deployments with supporting evidence.
 
 ---
 
 ### Phase 3: Assessment & Dedup
 
-#### Step 7: Impact Verification
+#### Step 7: Impact Verification (Anti-Speculation Gate)
 
-Verify that the claimed impact matches what the PoC (or reproduction attempts) actually demonstrates:
+Verify that the claimed impact matches what the PoC (or reproduction attempts) actually demonstrates. Triagers cannot work with assumptions — every impact claim must be backed by evidence.
 
 - If the finding claims "full database exfiltration" but the PoC only shows a single row, the severity justification is overstated.
 - If the finding claims "RCE" but the PoC only shows command output, verify that arbitrary commands can be executed (not just the one in the PoC).
 - If the finding claims "account takeover" but the PoC only shows information disclosure, the chain is incomplete.
+
+**Speculation sweep**: Scan the finding for speculative language — "could potentially," "might allow," "it is possible that," "an attacker may be able to." Replace each instance with demonstrated facts from the PoC: "the PoC extracts," "the response contains," "the request returns." If replacing speculative language makes the claim false, the claim is unsubstantiated and must be either removed or downgraded to an explicitly labeled theoretical note.
+
+**Demonstrated vs. theoretical**: If the finding has theoretical impact beyond what the PoC shows, label it explicitly in the impact section: "Demonstrated impact: [what the PoC proves]. Theoretical maximum impact: [what could be possible with further exploitation, and why]." Never present theoretical impact as demonstrated fact.
+
+**Chain speculation**: Do not claim chain potential unless both components are validated findings with demonstrated exploitability. "This XSS could be combined with a CSRF to achieve account takeover" is speculation unless both the XSS and CSRF are confirmed findings and the combined attack path is demonstrated.
 
 Adjust the severity and impact description to match the **demonstrated** impact, not the theoretical maximum.
 
@@ -286,11 +297,13 @@ Run the final checklist before rendering a verdict:
 - [ ] Scope: In scope (or UNCERTAIN with note)
 - [ ] Code reality: All file paths, functions, and line numbers verified
 - [ ] Reproduction: 2/3 or 3/3 attempts succeeded
+- [ ] Production config: PoC works against production-equivalent configuration (or gap documented)
 - [ ] Footgun score: 0-1 (or 2-3 with justification)
 - [ ] Triager checklist: 4/4 passed
 - [ ] Devil's advocate: Argument recorded, severity adjusted if warranted
 - [ ] Deduplication: Not a duplicate
 - [ ] Impact: Claimed impact matches demonstrated impact
+- [ ] Anti-speculation: No speculative language remains; all claims backed by PoC evidence
 
 **CONFIRMED**: All checks pass. Create `validation-result.md` from `templates/validation-result-template.md`, update finding.md frontmatter, move to `findings/validated/`.
 

@@ -38,6 +38,27 @@ adjusted_cvss: ""        # CVSS:3.1 vector string (after devil's advocate)
 - Overall: {2/3 or 3/3} reproductions succeeded
 - Notes on any failures:
 
+## Production Configuration Check
+
+- [ ] Application is not in debug/development mode
+- [ ] Default security features are not disabled
+- [ ] No non-standard configuration flags required
+- Config verified against: {production defaults / documented config / unable to verify}
+- Non-default settings required (if any):
+- Evidence that non-default settings are common in real deployments (if applicable):
+- Result: PASS / FAIL / UNABLE_TO_VERIFY
+
+## Anti-Speculation Check
+
+- [ ] No speculative language ("could potentially," "might allow," "it is possible that") remains in finding
+- [ ] All impact claims backed by PoC evidence or reproduction output
+- [ ] Chain claims reference validated component findings only
+- Speculative claims found and resolved:
+- Demonstrated vs. theoretical impact split:
+  - Demonstrated: {what the PoC proves}
+  - Theoretical maximum: {what could be possible, if applicable}
+- Result: PASS / FAIL
+
 ## Footgun Assessment
 
 Answer each question YES or NO:

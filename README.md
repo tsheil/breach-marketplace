@@ -20,7 +20,7 @@ Install plugins:
 
 | Plugin | Category | Description | Version |
 |--------|----------|-------------|---------|
-| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.6.0 |
+| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.7.0 |
 | [hackerone](plugins/hackerone/) | Utility | HackerOne bug bounty platform integration | 0.1.0 |
 
 ## Core Plugins
@@ -69,9 +69,9 @@ flowchart LR
 | `breach-static-scan` | Automated scanning -- Semgrep pattern matching + CodeQL dataflow analysis, deterministic vulnerability detection, includes custom rulesets when present, runs once during initialization |
 | `breach-code-analysis` | Vulnerability discovery -- OWASP Top 10 coverage, risk-prioritized analysis, vulnerability chaining, varies focus each loop iteration for non-deterministic coverage |
 | `breach-findings` | Finding standards -- canonical reference for finding structure, naming, lifecycle stages, PoC standards, and directory layout |
-| `breach-validate-finding` | Finding validation -- 4-phase 12-step procedure with anti-hallucination gates, footgun detection, triager analysis, 3x reproduction, deduplication |
+| `breach-validate-finding` | Finding validation -- 4-phase 12-step procedure with anti-hallucination gates, footgun detection, triager analysis, production config verification, anti-speculation sweep, 3x reproduction, deduplication |
 | `breach-chain-analysis` | Chain discovery -- analyzes validated finding pairs for escalated impact, known chain patterns, adjacency analysis, chain severity calculation |
-| `breach-report` | Report generation -- CVSS v3.1 scoring, reproduction steps, bounty-optimized presentation, hard gate on human-verified findings |
+| `breach-report` | Report generation -- CVSS v3.1 scoring, reproduction steps, bounty-optimized presentation, AI quality gates (anti-verbosity, PoC validation, platform compliance, anti-speculation), hard gate on human-verified findings |
 
 See [plugins/breach/README.md](plugins/breach/README.md) for full documentation.
 

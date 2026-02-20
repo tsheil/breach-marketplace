@@ -104,7 +104,67 @@ Order all findings by a composite score derived from three factors: (1) severity
 
 A brief section documenting the approach taken during the review. Include: the methodology framework used (OWASP Testing Guide, code review, dynamic analysis, or a combination), the scope of the review (what was examined and what was not), any tools used during analysis, the time period of the review, and explicit limitations or out-of-scope areas. This section protects both the researcher and the organization by setting clear expectations about coverage.
 
-## Section 4: Bounty Optimization
+## Section 4: AI Report Quality Gates
+
+AI-generated report content must pass these quality gates before inclusion. These gates counter the specific failure modes of AI-assisted vulnerability reporting — verbosity, speculation, unvalidated PoCs, and platform rule violations. Every section of every finding must survive all six checks.
+
+### Gate 1: Anti-Verbosity
+
+LLMs produce excessive, padded content that increases triager workload and signals low-quality submissions. Apply these constraints ruthlessly:
+
+- **Vulnerability type explanations**: Maximum two sentences. Do not explain what SQL injection is to a security triager. State the specific instance and its impact.
+- **Summary sections**: Three sentences maximum, following the first paragraph formula (what an attacker can do, what access is needed, what scope is affected). No fourth sentence.
+- **Reproduction steps**: Each step is one action. No explanatory paragraphs between steps. No verbose logging output unless the log line is the evidence. Strip setup instructions that don't contribute to reproduction.
+- **Impact narratives**: Concrete outcomes only. "An attacker can read all 50K user payment records" — not three paragraphs building up to that conclusion.
+- **Remediation**: Show the code fix. One paragraph of explanation maximum. Do not lecture on secure coding principles.
+
+**Self-test**: After generating each finding section, re-read it and cut any sentence that could be removed without losing information the triager needs. If more than 30% of the content survives cutting, the original was too verbose.
+
+### Gate 2: PoC Validation
+
+Never assume a generated PoC is valid. A PoC must demonstrate exploitability in the target's intended production configuration, not a misconfigured test environment.
+
+- **Production configuration requirement**: The PoC must work against the application's default or documented production configuration. A vulnerability that only triggers with debug mode enabled, non-default flags, or explicitly disabled security features is a footgun, not a finding — unless the report explicitly documents that the misconfiguration is common in real deployments with evidence.
+- **Independent execution**: Run the PoC from scratch after writing it. Do not rely on cached state, prior session context, or assumptions about the environment.
+- **Output verification**: Compare PoC output against the claims in the finding. If the finding claims "full database exfiltration" but the PoC extracts one row, the claim must be revised to match demonstrated impact — or the PoC must be extended.
+- **No fabricated responses**: Every response, error message, and data sample in the report must come from actual execution. Do not invent plausible-looking responses.
+
+### Gate 3: Reproduction Step Verification
+
+Reproduction steps fail when they include assumptions about the reader's environment or skip implicit setup.
+
+- **Independent walkthrough**: After writing reproduction steps, execute them sequentially from a clean state. Every step must produce the documented expected output.
+- **Strip unnecessary steps**: Remove any step that does not directly contribute to triggering or observing the vulnerability. "Open browser developer tools" is unnecessary unless the evidence is in the console. "Navigate to the home page" is unnecessary unless the exploit starts there.
+- **Strip verbose logging**: Do not include full HTTP response bodies unless specific lines are evidence. Show the relevant headers or the specific response field, not 200 lines of JSON.
+- **Exact values**: Every URL, parameter, header, cookie, and payload must be exact and complete. "Use your session token" fails the triager test. "Include header `Authorization: Bearer <token-from-step-1>`" passes.
+
+### Gate 4: Platform Rule Compliance
+
+AI tools lack context about specific bug bounty platform rules, scope definitions, and community guidelines. Before generating the final report:
+
+- **Scope check**: Verify every finding target is within the program's defined scope. If a scope document exists (check for `scope.md`, program policy, or user-provided scope), validate each affected component against it.
+- **Platform-specific rules**: If the user specifies a target platform (HackerOne, Bugcrowd, Intigriti, etc.), do not include recommendations that violate platform guidelines — such as hosting PoC files on external services when the platform prohibits it, or testing against production when only staging is in scope.
+- **Disclosure rules**: Do not include information that would violate responsible disclosure practices. If the finding involves a third-party dependency, note this but do not recommend public disclosure before vendor notification.
+- **Ask when uncertain**: If platform rules are unknown, prompt the user to specify applicable rules before finalizing the report. A report that violates platform rules gets rejected regardless of finding quality.
+
+### Gate 5: Anti-Speculation
+
+Triagers cannot work with assumptions. Every claim in the report must be backed by evidence demonstrated in the PoC or reproduction steps.
+
+- **Ban speculative language**: Do not use "could potentially," "might allow," "it is possible that," or "an attacker may be able to." Replace with demonstrated facts: "the PoC extracts," "the response contains," "the request returns."
+- **Impact must match demonstration**: If the PoC shows read access to one record, the impact is unauthorized read access to individual records — not "full database compromise" unless the PoC demonstrates unrestricted enumeration.
+- **No assumed attack chains**: Do not claim chain potential unless both components are validated findings with demonstrated exploitability. "This XSS could be combined with a CSRF to achieve account takeover" is speculation unless both the XSS and CSRF are confirmed and the chain is demonstrated.
+- **Theoretical vs. demonstrated**: If a finding has theoretical impact beyond what the PoC demonstrates, label it explicitly: "Demonstrated impact: [what the PoC shows]. Theoretical maximum impact: [what could be possible with further exploitation]." Never present theoretical impact as demonstrated.
+
+### Gate 6: Human Review Boundary
+
+AI should accelerate report writing, not replace the human researcher's judgment and accountability.
+
+- **Do not auto-respond to triager feedback**: When a triager asks for clarification, additional evidence, or challenges a finding, the human researcher must respond directly. AI-generated responses to triager questions risk providing incorrect technical details, contradicting the original report, or failing to address the specific concern raised. Flag triager feedback for human response — do not generate draft responses.
+- **Human signs off on final report**: The generated report is a draft. The researcher must review every section for accuracy before submission. Mark the output as a draft requiring human review.
+- **Researcher accountability**: The researcher's reputation is on the line, not the AI tool's. Every claim, every PoC, every severity rating must be something the researcher is willing to defend in a triager conversation.
+
+## Section 5: Bounty Optimization
 
 Reference `bounty-wisdom.md` for the complete tactical playbook. The following principles are embedded directly in every report this skill produces:
 
@@ -120,7 +180,7 @@ Reference `bounty-wisdom.md` for the complete tactical playbook. The following p
 
 **Submit chains as single reports.** When findings combine into an attack chain, submit the chain as one comprehensive report. Reference the individual components within the chain report. Do not submit individual chain components as separate reports — they will be closed as low severity, and reassembling them later into a chain is an uphill battle.
 
-## Section 5: Output
+## Section 6: Output
 
 The final deliverable is a complete markdown report with the following characteristics:
 
