@@ -78,14 +78,20 @@ After initialization completes, begin the autonomous discovery loop. Repeat B.1 
 
 Invoke `/breach:code-analysis` to discover vulnerabilities through manual code review. Manual findings have `source: "manual"` in frontmatter.
 
+**Variant-hunt conditional.** When the selected analysis approach (B) is `variant-hunt`:
+- Instead of invoking `/breach:code-analysis`, invoke `/breach:variant-analysis`
+- Select a validated finding from `findings/validated/` (prefer findings not yet variant-analyzed, i.e., no existing findings with `variant_of` pointing to that ID)
+- Continue with B.2 (dedup) and B.3 (validate) as normal
+
 **Coverage-driven focus selection.** Before starting analysis, read `findings/hunt-coverage.md` (if it exists) and select focus across 4 dimensions, choosing the least-used values from the Strategy Usage Log:
 
 - **A — Territory**: Select components from the Coverage Matrix gaps (cells marked `-`). Prioritize components with the fewest covered vuln classes.
 - **B — Analysis Approach**: Pick the least-used from: `broad-sweep` (survey many components quickly), `deep-dive` (exhaustive review of one component), `variant-hunt` (find variations of validated findings), `reverse-trace` (start from dangerous functions and trace inputs backwards), `adversarial-rejections` (re-examine rejected findings from a different angle).
 - **C — Attacker Perspective**: Pick the least-used from: `unauth-external` (unauthenticated external attacker), `auth-regular` (authenticated regular user), `privileged-admin` (privileged/admin user), `malicious-insider` (malicious insider with code access).
 - **D — Vuln Class Focus**: Pick the least-used OWASP category from: `a01` (Broken Access Control), `a02` (Cryptographic Failures), `a03` (Injection), `a04` (Insecure Design), `a05` (Security Misconfiguration), `a06` (Vulnerable Components), `a07` (Auth Failures), `a08` (Data Integrity Failures), `a09` (Logging Failures), `a10` (SSRF).
+- **E — Recency**: If code-recon output includes a Hot Components table, prioritize components listed there. When selecting Territory (A), prefer hot components that also have coverage gaps. Components with recent security-relevant commits, reverted patches, or newly introduced entry points should be analyzed before stable, well-tested components.
 
-**Auto-shift on diminishing returns.** When `consecutive_dry_iterations >= 3` (three consecutive iterations with zero validated findings), trigger an auto-shift: select the least-used value in ALL four dimensions simultaneously, reset the dry streak counter to 0, and announce the shift before proceeding.
+**Auto-shift on diminishing returns.** When `consecutive_dry_iterations >= 3` (three consecutive iterations with zero validated findings), trigger an auto-shift: select the least-used value in ALL five dimensions (A-E) simultaneously, reset the dry streak counter to 0, and announce the shift before proceeding.
 
 Announce the selected focus before invoking code-analysis:
 ```
@@ -175,8 +181,8 @@ current_strategy_focus: ""
 
 ## Strategy Usage Log
 
-| Iter | Analysis Approach (B) | Attacker Perspective (C) | Vuln Class Focus (D) | Components Targeted | New Validated | New Rejected |
-|------|----------------------|--------------------------|---------------------|---------------------|---------------|--------------|
+| Iter | Analysis Approach (B) | Attacker Perspective (C) | Vuln Class Focus (D) | Recency (E) | Components Targeted | New Validated | New Rejected |
+|------|----------------------|--------------------------|---------------------|-------------|---------------------|---------------|--------------|
 
 ## Coverage Matrix
 
@@ -223,7 +229,7 @@ When `consecutive_dry_iterations` reaches 3:
 1. Select the analysis approach (B) with the fewest uses in Strategy Usage Log
 2. Select the attacker perspective (C) with the fewest uses
 3. Select the vuln class (D) with the fewest uses
-4. Select the component (A) with the most `-` cells in Coverage Matrix
+4. Select the component (A) with the most `-` cells in Coverage Matrix, preferring hot components (E) when available
 5. Reset `consecutive_dry_iterations` to 0
 6. Record `last_shift_iteration` as the current iteration number
 7. Announce the auto-shift before proceeding to B.1
@@ -271,6 +277,7 @@ All breach skills remain independently invocable:
 - `/breach:validate-finding` — Finding validation with anti-hallucination gates, triager analysis, and PoC verification (lifecycle-aware or standalone)
 - `/breach:findings` — Canonical reference for finding structure, naming, lifecycle, and PoC standards
 - `/breach:custom-rules` — Custom Semgrep/CodeQL rule generation (standalone or pipeline)
+- `/breach:variant-analysis` — Variant analysis from findings, CVEs, or patterns (lifecycle-aware or standalone)
 - `/breach:chain-analysis` — Vulnerability chain discovery (lifecycle-aware or standalone)
 - `/breach:report` — Report generation (lifecycle gate in lifecycle mode, no gate in standalone)
 

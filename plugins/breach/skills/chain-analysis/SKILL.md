@@ -61,6 +61,12 @@ Known chain patterns with their effective severity:
 | Race Condition + Business Logic | Timing flaw | Financial operation | Financial fraud | Critical |
 | SQLi + Privilege Data | Data read | Role/permission tables | Privilege escalation | Critical |
 | SSRF + Internal API | Outbound request | No internal auth | Internal service compromise | Critical |
+| CRLF + SSRF | CRLF injection | Internal Redis/Memcached | RCE via cache commands | Critical |
+| SQLi + File Privilege | SQL injection | DB file read/write | Remote code execution | Critical |
+| SSRF + Document Generator | SSRF | PDF/image rendering | Internal data read | Critical |
+| LFI + Log Poisoning | Local file inclusion | Log file write | Remote code execution | Critical |
+| Mass Assignment + Privilege | Mass assignment | Role/admin field | Privilege escalation | Critical |
+| SSTI + Sandbox Escape | Template injection | Sandbox bypass | Remote code execution | Critical |
 | XSS + Session | Script injection | Cookie access | Session hijacking | High |
 
 For each pair of findings, check:

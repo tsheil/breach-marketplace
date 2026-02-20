@@ -29,6 +29,7 @@ All breach skill SKILL.md frontmatter must include a `name` field using the form
 - `breach-validate-finding`
 - `breach-chain-analysis`
 - `breach-custom-rules`
+- `breach-variant-analysis`
 - `breach-report`
 
 

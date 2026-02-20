@@ -2,7 +2,7 @@
 
 Security vulnerability hunting toolkit for Claude Code.
 
-Nine-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
+Ten-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
 
 ## Requirements
 
@@ -36,6 +36,7 @@ ln -s /path/to/breach ~/.claude/plugins/breach
   Discovery Loop (repeats until user stops):                                           │
                 │       ┌─────────────────────────────────────────────┐                │
                 │       │  /breach:code-analysis (vary focus)         │                │
+                │       │    ↳ or /breach:variant-analysis            │                │
                 │       │  dedup → /breach:validate-finding           │                │
                 │       │  /breach:chain-analysis                     │                │
                 │       │  iteration summary → loop back              │                │
@@ -48,7 +49,7 @@ ln -s /path/to/breach ~/.claude/plugins/breach
                 └── /breach:report ◄─────────────────┘
 ```
 
-The orchestrator (`/breach:hunt`) runs one-time initialization, then loops discovery-validation continuously — each pass finds different vulnerabilities through non-deterministic analysis. The loop runs until the user stops it. All skills also work standalone. The `/breach:findings` skill provides the canonical reference for finding structure, naming, and lifecycle consumed by all other skills.
+The orchestrator (`/breach:hunt`) runs one-time initialization, then loops discovery-validation continuously — each pass finds different vulnerabilities through non-deterministic analysis. When the `variant-hunt` approach is selected, it invokes `/breach:variant-analysis` instead of `/breach:code-analysis` to find variants of validated findings. The loop runs until the user stops it. All skills also work standalone. The `/breach:findings` skill provides the canonical reference for finding structure, naming, and lifecycle consumed by all other skills.
 
 ### breach-code-recon -- Attack Surface Mapping
 
@@ -58,7 +59,7 @@ Supports two output modes: executive brief (quick scan) and full attack surface 
 
 ### breach-hunt -- Autonomous Pipeline Orchestrator
 
-Orchestrates the breach pipeline as an autonomous loop. Initialization runs once: code-recon → custom-rules → static-scan → validate static findings. Then the discovery loop cycles continuously: code-analysis (with coverage-tracked focus selection) → deduplicate → validate → chain-analysis → iteration summary → loop back. Each pass selects focus across 4 dimensions (territory, analysis approach, attacker perspective, OWASP vuln class) using a persistent coverage tracker (`findings/hunt-coverage.md`), with auto-shift triggered after 3 consecutive dry iterations.
+Orchestrates the breach pipeline as an autonomous loop. Initialization runs once: code-recon → custom-rules → static-scan → validate static findings. Then the discovery loop cycles continuously: code-analysis (with coverage-tracked focus selection) → deduplicate → validate → chain-analysis → iteration summary → loop back. Each pass selects focus across 5 dimensions (territory, analysis approach, attacker perspective, OWASP vuln class, git recency) using a persistent coverage tracker (`findings/hunt-coverage.md`), with auto-shift triggered after 3 consecutive dry iterations.
 
 The loop runs until the user stops it. On re-invocation after human verification, generates reports for verified findings.
 
@@ -90,9 +91,17 @@ Validates each finding through a 4-phase, 12-step procedure with anti-hallucinat
 
 In lifecycle mode, processes findings from `findings/potential/` and `findings/confirmed/`, creates `validation-result.md` artifacts, and moves validated findings to `findings/validated/` or rejected findings to `findings/rejected/`. In standalone mode, operates from conversation context.
 
+### breach-variant-analysis -- Pattern-Based Variant Discovery
+
+Takes a known vulnerability instance — a validated finding, CVE ID, public disclosure, or raw pattern — extracts its structural essence, generates targeted Semgrep rules and CodeQL queries, and systematically searches the codebase for variants. Supports four input types: validated findings, CVE IDs (with automated patch diff analysis), public disclosure URLs, and raw vulnerability patterns.
+
+Four-phase workflow: pattern extraction (vulnerability skeleton, variant space definition), rule generation (Semgrep/CodeQL, tool selection by pattern type), codebase scan (automated rules + AI-assisted manual review), and result triage (filtering, lightweight validation, finding creation with `source: "variant-analysis"` and `variant_of` linking).
+
+In lifecycle mode, creates variant findings in `findings/potential/`. Integrated into the hunt loop as the `variant-hunt` analysis approach.
+
 ### breach-chain-analysis -- Vulnerability Chain Discovery
 
-Systematically analyzes validated findings to identify vulnerability chains — combinations of two or more findings that produce escalated impact. Checks all finding pairs against known chain patterns (IDOR + info disclosure → account takeover, SSRF + cloud metadata → infra compromise, etc.) and performs adjacency analysis for novel chains.
+Systematically analyzes validated findings to identify vulnerability chains — combinations of two or more findings that produce escalated impact. Checks all finding pairs against known chain patterns (IDOR + info disclosure → account takeover, SSRF + cloud metadata → infra compromise, CRLF + SSRF → Redis RCE, SQLi + file privilege → RCE, etc.) and performs adjacency analysis for novel chains.
 
 In lifecycle mode, creates chain findings in `findings/validated/` with `vuln_type: "CHAIN"` and `chain_components` listing component IDs. In standalone mode, outputs chains to conversation.
 
@@ -118,7 +127,7 @@ findings/
 
 **Finding folders** follow the naming convention `{SEVERITY}-{ID}-{VULN_TYPE}-{desc}/` (e.g., `HIGH-003-SQLI-user-search-endpoint/`) and contain a `finding.md` with YAML frontmatter and structured markdown sections, plus a `poc/` directory for exploit scripts. Chain findings use the convention `{SEVERITY}-{ID}-CHAIN-{desc}/`.
 
-**Finding metadata** includes a `source` field ("manual", "semgrep", "codeql", "custom-semgrep", or "custom-codeql") to track how each finding was discovered, and a `chain_components` field for chain findings that lists the IDs of component findings.
+**Finding metadata** includes a `source` field ("manual", "semgrep", "codeql", "custom-semgrep", "custom-codeql", or "variant-analysis") to track how each finding was discovered, a `variant_of` field linking variant findings to their source finding/CVE/disclosure, and a `chain_components` field for chain findings that lists the IDs of component findings.
 
 **Human verification** is the critical gate between validation and reporting. After the user stops the discovery loop, a human reviewer must:
 1. Review each finding in `findings/validated/`
@@ -137,7 +146,8 @@ This ensures no finding reaches the final report without human review.
 - **Human-in-the-loop** -- AI discovers and validates in a loop, humans verify after stopping before reporting.
 - **Tool-augmented** -- combines deterministic tool analysis (one-time) with AI-driven manual review (looped) for maximum coverage.
 - **Chain-aware** -- dedicated analysis identifies escalated impact from finding combinations.
-- **Suggested pipeline** -- each skill recommends the next stage but all nine work independently.
+- **Variant-aware** -- variant analysis extracts vulnerability skeletons from findings, CVEs, or disclosures and systematically searches for similar patterns.
+- **Suggested pipeline** -- each skill recommends the next stage but all ten work independently.
 - **OWASP Top 10 focused** -- hunting methodology maps directly to the OWASP Top 10 2021.
 - **Standardized PoCs** -- findings skill defines PoC standards; validation verifies compliance.
 - **Anti-hallucination** -- validation includes hard gates that reject fabricated file paths, functions, and data flows.
@@ -154,6 +164,7 @@ Each skill carries its own reference files under `skills/<skill>/references/`.
 | hunt | `skills/hunt/references/` | Security review principles (mindset, evidence, methodology, severity calibration) |
 | validate-finding | `skills/validate-finding/references/` | Triager analysis reference (triager perspective, N/A patterns, AI slop detection) |
 | chain-analysis | `skills/chain-analysis/references/` | Vulnerability chain pattern catalog |
+| variant-analysis | `skills/variant-analysis/references/` | Variant extraction patterns, CVE research guide |
 | custom-rules | `skills/custom-rules/references/` | Rule categories taxonomy, Semgrep rule syntax, CodeQL query syntax |
 | report | `skills/report/references/` | Report template, CVSS v3.1 scoring guide, bounty writing wisdom |
 

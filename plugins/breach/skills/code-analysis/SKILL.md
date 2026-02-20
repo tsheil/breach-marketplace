@@ -134,6 +134,24 @@ When investigating a specific vulnerability class, consult the corresponding ref
 | Software and data integrity failures (deserialization, CI/CD, mass assignment) | `a08-integrity-failures.md` |
 | Logging and monitoring failures (missing logs, log injection, data in logs) | `a09-logging-monitoring-failures.md` |
 | Server-side request forgery (direct SSRF, blind SSRF, cloud metadata) | `a10-ssrf.md` |
+| Dangerous sinks and functions (per-language catalog) | `dangerous-sinks-catalog.md` |
+| GraphQL security (introspection, resolver auth, batching, complexity) | `graphql-security-patterns.md` |
+| AI/ML vulnerabilities (prompt injection, model loading, LLM output execution) | `ai-ml-vulnerabilities.md` |
+| Client-side JavaScript (DOM XSS, postMessage, prototype pollution, routing) | `client-side-js-patterns.md` |
+
+## Static Scan Cross-Reference
+
+When `findings/potential/` contains findings with `source: "semgrep"`, `"codeql"`, `"custom-semgrep"`, or `"custom-codeql"`, cross-reference them during analysis:
+
+1. Before analyzing a component, check if static scan found anything in the same file(s)
+2. For each static finding in the current component:
+   - Read the finding.md to understand the tool's detection
+   - Trace the flagged code path manually to confirm or refute
+   - If the tool found a medium-confidence pattern, deep-dive: trace actual data flow end-to-end
+   - If confirmed: upgrade confidence in the finding, add manual trace evidence
+   - If refuted: note why (framework protection, unreachable code path, false pattern match)
+3. Static findings that survive manual confirmation get richer evidence (both tool detection + manual trace)
+4. Use static findings as hints for nearby vulnerabilities — if a tool flagged one query in a file, manually check all queries in that file
 
 ## Vulnerability Chaining
 

@@ -20,14 +20,14 @@ Install plugins:
 
 | Plugin | Category | Description | Version |
 |--------|----------|-------------|---------|
-| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.6.0 |
+| [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.7.0 |
 | [hackerone](plugins/hackerone/) | Utility | HackerOne bug bounty platform integration | 0.1.0 |
 
 ## Core Plugins
 
 ### breach
 
-Nine-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
+Ten-skill pipeline for systematic source code security review with a filesystem-based finding lifecycle. Designed for expert security researchers and bug bounty hunters.
 
 ```mermaid
 flowchart LR
@@ -43,10 +43,13 @@ flowchart LR
 
     subgraph loop ["Discovery Loop (repeats)"]
         code["breach-code-analysis\n(vary focus)"]
+        variant["breach-variant-analysis"]
         dedup["deduplicate"]
         validate["breach-validate-finding"]
         chain["breach-chain-analysis"]
+        code -.->|"variant-hunt"| variant
         code --> dedup --> validate --> chain
+        variant --> dedup
         chain -->|"loop back"| code
     end
 
@@ -71,6 +74,7 @@ flowchart LR
 | `breach-findings` | Finding standards -- canonical reference for finding structure, naming, lifecycle stages, PoC standards, and directory layout |
 | `breach-validate-finding` | Finding validation -- 4-phase 12-step procedure with anti-hallucination gates, footgun detection, triager analysis, 3x reproduction, deduplication |
 | `breach-chain-analysis` | Chain discovery -- analyzes validated finding pairs for escalated impact, known chain patterns, adjacency analysis, chain severity calculation |
+| `breach-variant-analysis` | Variant analysis -- extracts structural patterns from findings/CVEs/disclosures, generates targeted Semgrep/CodeQL rules, scans for variants across the codebase |
 | `breach-report` | Report generation -- CVSS v3.1 scoring, reproduction steps, bounty-optimized presentation, hard gate on human-verified findings |
 
 See [plugins/breach/README.md](plugins/breach/README.md) for full documentation.
