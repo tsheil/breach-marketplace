@@ -87,7 +87,7 @@ Canonical reference for finding structure, naming conventions, lifecycle stages,
 
 ### breach-validate-finding -- Finding Validation
 
-Validates each finding through a 4-phase, 12-step procedure with anti-hallucination gates, footgun detection, triager perspective analysis, 3x reproduction, deduplication, and mandatory devil's advocate severity challenge. Verifies existing PoCs against quality standards rather than generating new ones.
+Validates each finding through a 5-phase, 17-step procedure with anti-hallucination gates, footgun detection, triager perspective analysis, 3x reproduction, deduplication, and mandatory devil's advocate severity challenge. Verifies existing PoCs against quality standards rather than generating new ones.
 
 In lifecycle mode, processes findings from `findings/potential/` and `findings/confirmed/`, creates `validation-result.md` artifacts, and moves validated findings to `findings/validated/` or rejected findings to `findings/rejected/`. In standalone mode, operates from conversation context.
 

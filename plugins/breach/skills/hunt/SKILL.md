@@ -112,7 +112,7 @@ Keep the finding with richer context (typically the one with more detailed explo
 
 Process remaining (non-duplicate) findings in `findings/potential/` through `/breach:validate-finding`:
 
-- Apply the full 4-phase validation procedure (gates, verification, reproduction & PoC, assessment & dedup), triage criteria, CVSS scoring, and confidence assignment.
+- Apply the full 5-phase validation procedure (gates, verification, reproduction & PoC, assessment & dedup, verdict), triage criteria, CVSS scoring, and confidence assignment.
 - **Validated findings**: Update finding.md with all sections and frontmatter fields. Create `validation-result.md`. Verify PoC scripts. Move to `findings/validated/`.
 - **Rejected findings**: Set `rejection_reason`, update stage, move to `findings/rejected/`.
 

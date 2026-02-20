@@ -10,28 +10,28 @@ This skill is the canonical reference for how findings are structured, named, st
 ## Finding Folder Naming Convention
 
 ```
-{SEVERITY}-{VULN_TYPE}-{NNN}-{short-description}/
+{SEVERITY}-{NNN}-{VULN_TYPE}-{short-description}/
 ```
 
 | Segment | Format | Examples |
 |---------|--------|----------|
 | **SEVERITY** | Prefix shorthand | `CRIT`, `HIGH`, `MED`, `LOW`, `INFO` |
-| **VULN_TYPE** | Freeform shorthand | `XSS`, `SQLI`, `IDOR`, `RCE`, `SSRF`, `SSTI`, `CMDI`, `LFI`, `CHAIN`, `AUTH`, `CRYPTO`, `DESER`, `PATH-TRAV`, `OPEN-REDIR` |
 | **NNN** | Zero-padded 3-digit sequence | `001`, `002`, ..., `010`, ..., `100` |
+| **VULN_TYPE** | Freeform shorthand | `XSS`, `SQLI`, `IDOR`, `RCE`, `SSRF`, `SSTI`, `CMDI`, `LFI`, `CHAIN`, `AUTH`, `CRYPTO`, `DESER`, `PATH-TRAV`, `OPEN-REDIR` |
 | **short-description** | Kebab-case, ~40 chars max | `user-search-endpoint`, `admin-panel-bypass` |
 
 Examples:
-- `HIGH-SQLI-003-user-search-endpoint/`
-- `CRIT-RCE-001-file-upload-handler/`
-- `MED-XSS-007-comment-rendering/`
-- `HIGH-CHAIN-012-idor-plus-info-disclosure/`
+- `HIGH-003-SQLI-user-search-endpoint/`
+- `CRIT-001-RCE-file-upload-handler/`
+- `MED-007-XSS-comment-rendering/`
+- `HIGH-012-CHAIN-idor-plus-info-disclosure/`
 
 ## Canonical Directory Structure
 
 Each finding folder contains:
 
 ```
-{SEVERITY}-{VULN_TYPE}-{NNN}-{short-description}/
+{SEVERITY}-{NNN}-{VULN_TYPE}-{short-description}/
 ├── finding.md          # Structured finding document (YAML frontmatter + markdown sections)
 ├── poc/                # Proof-of-concept scripts and supporting files
 │   ├── poc.mjs         # or poc.sh, poc.py — primary exploit script
@@ -164,7 +164,7 @@ Which skill creates which artifact within a finding folder:
 ## ID Assignment Procedure
 
 1. Scan all finding folders across ALL stage directories: `potential/`, `confirmed/`, `validated/`, `verified/`, `reported/`, `rejected/`
-2. Extract the numeric ID from each folder name (third segment: `{SEVERITY}-{VULN_TYPE}-{NNN}-{desc}`)
+2. Extract the numeric ID from each folder name (second segment: `{SEVERITY}-{NNN}-{VULN_TYPE}-{desc}`)
 3. Find the maximum ID value
 4. Increment by 1
 5. Zero-pad to 3 digits (001, 002, ..., 010, ..., 100, ...)
@@ -175,7 +175,7 @@ Which skill creates which artifact within a finding folder:
 
 When a finding's severity changes during validation:
 
-1. Rename the finding folder to reflect the new severity prefix: `HIGH-SQLI-003-user-search-endpoint/` → `MED-SQLI-003-user-search-endpoint/`
+1. Rename the finding folder to reflect the new severity prefix: `HIGH-003-SQLI-user-search-endpoint/` → `MED-003-SQLI-user-search-endpoint/`
 2. Update the `severity` field in finding.md frontmatter
 3. The ID and all other segments remain unchanged
 

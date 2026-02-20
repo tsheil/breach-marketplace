@@ -5,7 +5,7 @@ description: "Validate security findings with anti-hallucination gates, triager 
 
 # Validate Finding
 
-Validation turns raw findings into defensible evidence through a 4-phase, 12-step procedure with hard gates that reject hallucinated, out-of-scope, footgun, and duplicate findings. Every finding that reaches the report must survive this phase — no exceptions, no shortcuts. If the evidence bar isn't met, the finding goes to rejected, not forward to report.
+Validation turns raw findings into defensible evidence through a 5-phase, 17-step procedure with hard gates that reject hallucinated, out-of-scope, footgun, and duplicate findings. Every finding that reaches the report must survive this phase — no exceptions, no shortcuts. If the evidence bar isn't met, the finding goes to rejected, not forward to report.
 
 ## Evidence Bar (Non-Negotiable)
 
@@ -53,7 +53,7 @@ Good: "Add ownership check at line 83 in `api/views/documents.py` before the que
 
 ## Validation Procedure
 
-For each raw finding, execute this 4-phase, 12-step procedure in order. Do not skip steps. Do not reorder. Hard gates halt processing on failure.
+For each raw finding, execute this 5-phase, 17-step procedure in order. Do not skip steps. Do not reorder. Hard gates halt processing on failure.
 
 ---
 

@@ -215,5 +215,5 @@ Not finding chains is a valid and useful result. It confirms that the individual
 
 After completing chain analysis:
 
-- **Lifecycle mode**: Chain findings have been added to `findings/validated/` alongside individual findings. All findings (individual and chain) proceed to human verification in Phase D of the hunt pipeline. Run `/breach:hunt` to continue.
+- **Lifecycle mode**: Chain findings have been added to `findings/validated/` alongside individual findings. All findings (individual and chain) proceed to human verification in Phase C of the hunt pipeline. Run `/breach:hunt` to continue.
 - **Standalone mode**: Chain findings have been output to conversation. Run `/breach:report` to generate the final security report covering both individual and chain findings.
