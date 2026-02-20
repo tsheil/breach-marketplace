@@ -27,6 +27,17 @@
       "source": "./plugins/hackerone",
       "category": "utility",
       "homepage": "https://github.com/tsheil/breach-marketplace"
+    },
+    {
+      "name": "ai-collaboration",
+      "description": "Cross-model AI consultation and task delegation via Codex CLI and Gemini CLI. Get second opinions, delegate code reviews, cross-check vulnerability assessments, and hand off discrete tasks to other AI models.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Thomas Sheil"
+      },
+      "source": "./plugins/ai-collaboration",
+      "category": "utility",
+      "homepage": "https://github.com/tsheil/breach-marketplace"
     }
   ]
 }

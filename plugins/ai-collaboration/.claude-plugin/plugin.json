@@ -1,0 +1,9 @@
+{
+  "name": "ai-collaboration",
+  "version": "0.1.0",
+  "description": "Cross-model AI consultation and task delegation via Codex CLI and Gemini CLI. Get second opinions, delegate code reviews, cross-check vulnerability assessments, and hand off discrete tasks to other AI models.",
+  "author": {
+    "name": "Thomas Sheil"
+  },
+  "license": "Apache-2.0"
+}

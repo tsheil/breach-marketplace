@@ -22,6 +22,7 @@ Install plugins:
 |--------|----------|-------------|---------|
 | [breach](plugins/breach/) | Core | Security vulnerability hunting toolkit | 1.7.0 |
 | [hackerone](plugins/hackerone/) | Utility | HackerOne bug bounty platform integration | 0.1.0 |
+| [ai-collaboration](plugins/ai-collaboration/) | Utility | Cross-model AI consultation and task delegation | 0.1.0 |
 
 ## Core Plugins
 
@@ -92,6 +93,18 @@ HackerOne bug bounty platform integration. Navigate programs, reports, hacktivit
 | `/hackerone` | Navigate HackerOne platform -- program research, report management, hacktivity intelligence, balance and earnings |
 
 See [plugins/hackerone/README.md](plugins/hackerone/README.md) for full documentation.
+
+### ai-collaboration
+
+Cross-model AI consultation and task delegation via Codex CLI and Gemini CLI. Get second opinions, delegate code reviews, cross-check analysis, and hand off discrete tasks to other AI models.
+
+**Requirements:** Node.js, at least one of: [Codex CLI](https://github.com/openai/codex) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) installed and configured.
+
+| Skill | Purpose |
+|-------|---------|
+| `/ai-collaboration` | Consult or delegate to other AI models — second opinions, code review, vulnerability assessment, task handoff |
+
+See [plugins/ai-collaboration/README.md](plugins/ai-collaboration/README.md) for full documentation.
 
 ## License
 
